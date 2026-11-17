@@ -44,6 +44,19 @@ test('ingest stores new items once and ignores old ones', async () => {
   assert.equal(await RawItem.countDocuments(), 2);
 });
 
+test('ingest drops headlines matching a feed exclude pattern', async () => {
+  const fetchImpl = fakeFetch({
+    [FEED.url]: rss([
+      { title: 'RBI to conduct VRRR auction under LAF', url: 'https://n.test/r1' },
+      { title: 'RBI releases report on currency and finance', url: 'https://n.test/r2' },
+    ]),
+  });
+  const stats = await ingestFeeds({ feeds: [{ ...FEED, exclude: 'auction|treasury bill' }], fetchImpl });
+  assert.equal(stats.excluded, 1);
+  assert.equal(stats.inserted, 1);
+  assert.equal((await RawItem.findOne()).url, 'https://n.test/r2');
+});
+
 test('generate creates in-review articles and questions with provenance', async () => {
   await RawItem.create([
     { url: 'https://n.test/1', feedId: 'test', publisher: 'Test Times', title: 'Parliament passes data protection amendment', description: 'Details', publishedAt: new Date() },
