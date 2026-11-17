@@ -2,7 +2,7 @@
 const crypto = require('node:crypto');
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { setupDb, teardownDb, clearDb, http, makeUser } = require('./helpers');
+const { setupDb, teardownDb, clearDb, http, makeUser, waitForMail } = require('./helpers');
 const config = require('../src/config');
 const { outbox } = require('../src/lib/mailer');
 const social = require('../src/modules/users/social');
@@ -22,13 +22,11 @@ beforeEach(async () => {
 });
 
 const codeIn = (mail) => mail.subject.match(/^(\d{6})/)[1];
-const wait = () => new Promise((r) => { setTimeout(r, 50); });
 
 test('email verification with a code', async () => {
   const reg = await http().post('/api/v1/auth/register').send({ email: 'v@example.com', name: 'Vee', password: 'password123' });
   assert.equal(reg.body.user.emailVerified, false);
-  await wait();
-  const mail = outbox.find((m) => /verification code/.test(m.subject));
+  const mail = await waitForMail((m) => /verification code/.test(m.subject));
   assert.ok(mail, 'verification email sent on sign-up');
   const auth = { Authorization: `Bearer ${reg.body.token}` };
   assert.equal((await http().post('/api/v1/auth/email/verify').set(auth).send({ code: codeIn(mail) === '000000' ? '111111' : '000000' })).status, 400);
