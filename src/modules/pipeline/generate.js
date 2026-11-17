@@ -11,20 +11,36 @@ const { extractArticleText } = require('../../lib/text');
 const { mapWithConcurrency } = require('../../lib/pool');
 
 const STALE_PROCESSING_MS = 30 * 60 * 1000;
+const MAX_SOURCES_PER_PROMPT = 4;
 
-/** Atomically claims up to `limit` new items so two runs can never process the same item. */
+const stamp = () => ({ status: 'processing', processingStartedAt: new Date() });
+
+/**
+ * Atomically claims up to `limit` stories. For each, the lead item and every other
+ * queued item in the same story are claimed together, so a story is written once.
+ */
 async function claimBatch(limit) {
-  const claimed = [];
+  const stories = [];
   for (let i = 0; i < limit; i += 1) {
-    const item = await RawItem.findOneAndUpdate(
+    const set = stamp();
+    const lead = await RawItem.findOneAndUpdate(
       { status: 'new' },
-      { $set: { status: 'processing', processingStartedAt: new Date() }, $inc: { attempts: 1 } },
+      { $set: set, $inc: { attempts: 1 } },
       { sort: { publishedAt: -1 }, returnDocument: 'after' },
     );
-    if (!item) break;
-    claimed.push(item);
+    if (!lead) break;
+    let items = [lead];
+    if (lead.storyKey) {
+      await RawItem.updateMany(
+        { storyKey: lead.storyKey, status: 'new' },
+        { $set: { status: 'processing', processingStartedAt: set.processingStartedAt }, $inc: { attempts: 1 } },
+      );
+      items = await RawItem.find({ storyKey: lead.storyKey, status: 'processing', processingStartedAt: set.processingStartedAt })
+        .sort({ publishedAt: 1 });
+    }
+    stories.push(items);
   }
-  return claimed;
+  return stories;
 }
 
 /** Items stuck in "processing" (e.g. the worker crashed) go back to the queue. */
@@ -45,23 +61,81 @@ async function loadFullText(item, fetchImpl) {
   }
 }
 
-async function processItem(item, { provider, fetchImpl, maxAttempts }) {
-  try {
-    // A second feed may carry the same story URL; never create duplicate content.
-    const existing = await Article.findOne({ 'sources.url': item.url }).select('_id').lean();
-    if (existing) {
-      await RawItem.updateOne({ _id: item._id }, { $set: { status: 'skipped', skipReason: 'duplicate_source', article: existing._id } });
-      return 'skipped';
-    }
+const OFFICIAL = /press information bureau|\bpib\b|ministry|reserve bank|\brbi\b|sebi|supreme court|high court|lok sabha|rajya sabha|election commission|niti aayog/i;
 
+/** Official sources first, then the ones with the most text. */
+function rankSources(items) {
+  return [...items].sort((a, b) => (OFFICIAL.test(b.publisher || '') - OFFICIAL.test(a.publisher || ''))
+    || ((b.fullText || b.description || '').length - (a.fullText || a.description || '').length));
+}
+
+const toSource = (item, extra = {}) => ({
+  url: item.url,
+  publisher: item.publisher,
+  title: item.title,
+  publishedAt: item.publishedAt,
+  excerpt: (item.fullText || item.description || '').slice(0, 1500),
+  ...extra,
+});
+
+async function markItems(items, set) {
+  await RawItem.updateMany({ _id: { $in: items.map((i) => i._id) } }, { $set: set });
+}
+
+/**
+ * If an article already exists for this story (or shares a source URL), new
+ * coverage is added to it while it is still in review. Published, rejected and
+ * retracted articles are never changed by the pipeline.
+ */
+async function handleExistingStory(items, fetchImpl) {
+  const storyKey = items[0].storyKey;
+  const urls = items.map((i) => i.url);
+  let existing = await Article.findOne({
+    $or: [{ 'sources.url': { $in: urls } }, ...(storyKey ? [{ storyKey }] : [])],
+  }).sort({ createdAt: 1 });
+  if (!existing) return null;
+  // A merged duplicate points at the article that now holds the story.
+  for (let hops = 0; existing?.mergedInto && hops < 5; hops += 1) existing = await Article.findById(existing.mergedInto);
+  if (!existing) return null;
+
+  const known = new Set(existing.sources.map((src) => src.url));
+  const fresh = items.filter((i) => !known.has(i.url));
+  if (!fresh.length) {
+    await markItems(items, { status: 'skipped', skipReason: 'duplicate_source', article: existing._id });
+    return 'skipped';
+  }
+  if (!['in_review', 'draft'].includes(existing.status)) {
+    // Published, retracted or rejected by an editor: don't change it or bring the story back.
+    await markItems(items, { status: 'skipped', skipReason: `already_covered_${existing.status}`, article: existing._id });
+    return 'skipped';
+  }
+  const now = new Date();
+  for (const item of fresh) {
     const fullText = await loadFullText(item, fetchImpl);
-    const source = { ...item.toObject(), fullText };
+    existing.sources.push(toSource({ ...item.toObject(), fullText }, { addedLater: true, addedAt: now }));
+    existing.generation.rawItemIds.push(item._id);
+  }
+  if (!existing.storyKey && storyKey) existing.storyKey = storyKey;
+  await existing.save();
+  await markItems(fresh, { status: 'processed', article: existing._id, attachedLater: true, lastError: null });
+  await markItems(items.filter((i) => known.has(i.url)), { status: 'skipped', skipReason: 'duplicate_source', article: existing._id });
+  return 'attached';
+}
+
+async function processStory(items, { provider, fetchImpl, maxAttempts }) {
+  try {
+    const handled = await handleExistingStory(items, fetchImpl);
+    if (handled) return handled;
+
+    const withText = await Promise.all(items.map(async (i) => ({ ...i.toObject(), fullText: await loadFullText(i, fetchImpl) })));
+    const ranked = rankSources(withText);
+    const promptSources = ranked.slice(0, MAX_SOURCES_PER_PROMPT);
     const result = await provider.generateJSON({
       system: SYSTEM_PROMPT,
-      prompt: buildUserPrompt(source),
+      prompt: buildUserPrompt(promptSources),
       schema: OUTPUT_JSON_SCHEMA,
       schemaName: 'current_affairs_item',
-      context: { item: source },
+      context: { item: promptSources[0], items: promptSources },
     });
 
     const parsed = generatedOutput.safeParse(result.data);
@@ -71,7 +145,7 @@ async function processItem(item, { provider, fetchImpl, maxAttempts }) {
     const out = parsed.data;
 
     if (!out.relevant) {
-      await RawItem.updateOne({ _id: item._id }, { $set: { status: 'skipped', skipReason: out.relevanceReason || 'not_relevant' } });
+      await markItems(items, { status: 'skipped', skipReason: out.relevanceReason || 'not_relevant' });
       return 'skipped';
     }
 
@@ -79,7 +153,7 @@ async function processItem(item, { provider, fetchImpl, maxAttempts }) {
       provider: provider.name,
       model: result.model,
       promptVersion: PROMPT_VERSION,
-      rawItemIds: [item._id],
+      rawItemIds: items.map((i) => i._id),
       generatedAt: new Date(),
       rawOutput: result.raw,
     };
@@ -91,10 +165,11 @@ async function processItem(item, { provider, fetchImpl, maxAttempts }) {
       keyPoints: out.keyPoints,
       upscRelevance: out.upscRelevance,
       tags: { gsPaper: out.gsPaper, subjects: out.subjects, keywords: out.keywords },
-      sources: [{ url: item.url, publisher: item.publisher, title: item.title, publishedAt: item.publishedAt, excerpt: (fullText || item.description || '').slice(0, 1500) }],
+      sources: ranked.map((src) => toSource(src)),
       factsToVerify: out.factsToVerify.map((text) => ({ text })),
       status: 'in_review',
-      eventDate: item.publishedAt,
+      eventDate: items.map((i) => i.publishedAt).filter(Boolean).sort((a, b) => a - b)[0],
+      storyKey: items[0].storyKey,
       generation,
     });
     await Question.insertMany(
@@ -110,21 +185,24 @@ async function processItem(item, { provider, fetchImpl, maxAttempts }) {
         generation: { provider: provider.name, model: result.model, promptVersion: PROMPT_VERSION },
       })),
     );
-    await RawItem.updateOne({ _id: item._id }, { $set: { status: 'processed', article: article._id, lastError: null } });
+    await markItems(items, { status: 'processed', article: article._id, lastError: null });
     return 'created';
   } catch (err) {
-    const failed = item.attempts >= maxAttempts;
-    await RawItem.updateOne(
-      { _id: item._id },
-      { $set: { status: failed ? 'failed' : 'new', lastError: String(err.message || err).slice(0, 1000) } },
-    );
+    const message = String(err.message || err).slice(0, 1000);
+    let failed = false;
+    for (const item of items) {
+      const isFailed = item.attempts >= maxAttempts;
+      failed = failed || isFailed;
+      await RawItem.updateOne({ _id: item._id }, { $set: { status: isFailed ? 'failed' : 'new', lastError: message } });
+    }
     return failed ? 'failed' : 'retry';
   }
 }
 
 /**
- * Turns queued feed items into draft articles + questions, sent to the editor review
- * queue (status in_review). Nothing generated here is visible to users until approved.
+ * Turns queued stories into draft articles + questions in the editor review queue
+ * (status in_review). Nothing generated here is visible to users until approved.
+ * `limit` is the number of stories per run; each story may contain several items.
  */
 async function generateContent({
   provider = createProvider(),
@@ -134,14 +212,16 @@ async function generateContent({
   fetchImpl = fetch,
 } = {}) {
   const recovered = await recoverStale();
-  const items = await claimBatch(limit);
-  const outcomes = await mapWithConcurrency(items, concurrency, (item) => processItem(item, { provider, fetchImpl, maxAttempts }));
+  const stories = await claimBatch(limit);
+  const outcomes = await mapWithConcurrency(stories, concurrency, (items) => processStory(items, { provider, fetchImpl, maxAttempts }));
   const count = (k) => outcomes.filter((o) => o === k).length;
   return {
     provider: provider.name,
     model: provider.model,
-    claimed: items.length,
+    stories: stories.length,
+    claimed: stories.reduce((n, st) => n + st.length, 0),
     created: count('created'),
+    attached: count('attached'),
     skipped: count('skipped'),
     retry: count('retry'),
     failed: count('failed'),
@@ -149,4 +229,4 @@ async function generateContent({
   };
 }
 
-module.exports = { generateContent, claimBatch, recoverStale };
+module.exports = { generateContent, claimBatch, recoverStale, rankSources };

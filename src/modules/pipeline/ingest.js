@@ -4,6 +4,7 @@ const config = require('../../config');
 const { RawItem } = require('./rawItem.model');
 const { getFeeds } = require('./feeds');
 const { stripHtml } = require('../../lib/text');
+const { assignStories } = require('./stories');
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', textNodeName: '#text' });
 
@@ -61,7 +62,8 @@ async function fetchText(url, { fetchImpl = fetch, timeoutMs = 15000 } = {}) {
  */
 async function ingestFeeds({ feeds = getFeeds(), fetchImpl = fetch, log } = {}) {
   const cutoff = new Date(Date.now() - config.pipeline.maxItemAgeHours * 3600 * 1000);
-  const stats = { feeds: feeds.length, fetched: 0, inserted: 0, tooOld: 0, feedErrors: [] };
+  const stats = { feeds: feeds.length, fetched: 0, inserted: 0, grouped: 0, tooOld: 0, feedErrors: [] };
+  const insertedIds = [];
 
   for (const feed of feeds) {
     try {
@@ -84,11 +86,14 @@ async function ingestFeeds({ feeds = getFeeds(), fetchImpl = fetch, log } = {}) 
         { ordered: false },
       );
       stats.inserted += result.upsertedCount;
+      insertedIds.push(...Object.values(result.upsertedIds || {}));
     } catch (err) {
       log?.warn({ feed: feed.id, err: err.message }, 'Feed failed');
       stats.feedErrors.push({ feed: feed.id, error: err.message });
     }
   }
+  // Group items about the same event (across feeds and across runs).
+  stats.grouped = (await assignStories(insertedIds)).grouped;
   return stats;
 }
 

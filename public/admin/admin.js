@@ -90,12 +90,13 @@ async function articleListView(status, title) {
   return h('div', { class: 'panel' },
     h('h1', {}, `${title} (${total})`),
     items.length ? h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, 'Title'), h('th', {}, 'Status'), h('th', {}, 'Subjects'), h('th', {}, 'Facts'), h('th', {}, 'Source'), h('th', {}, 'Created'))),
+      h('thead', {}, h('tr', {}, h('th', {}, 'Title'), h('th', {}, 'Status'), h('th', {}, 'Subjects'), h('th', {}, 'Facts'), h('th', {}, 'Sources'), h('th', {}, 'Written by'), h('th', {}, 'Created'))),
       h('tbody', {}, items.map((a) => h('tr', {},
         h('td', {}, h('a', { href: `#/article/${a._id}` }, a.title)),
         h('td', {}, badge(a.status), a.version > 1 ? h('span', { class: 'muted' }, ` v${a.version}`) : null),
         h('td', { class: 'muted' }, (a.tags?.subjects || []).join(', ')),
         h('td', { class: 'muted' }, String(a.factsToVerify?.length || 0)),
+        h('td', { class: 'muted' }, String(a.sources?.length || 0)),
         h('td', { class: 'muted' }, a.generation?.provider || '—'),
         h('td', { class: 'muted' }, fmt(a.createdAt)))))) : h('p', { class: 'muted' }, 'Nothing here.'));
 }
@@ -140,6 +141,8 @@ async function articleView(id) {
   const { article: a, questions, revisions, history } = await api(`/admin/articles/${id}`);
   const reload = () => render();
   const inReview = ['in_review', 'draft'].includes(a.status);
+  const similar = inReview ? (await api(`/admin/articles/${id}/similar`)).items : [];
+  const lateSources = a.sources.filter((s) => s.addedLater);
 
   const factBoxes = a.factsToVerify.map((f, i) => h('input', { type: 'checkbox', 'data-i': i, checked: f.confirmed, disabled: !inReview }));
   const notes = h('textarea', { placeholder: 'Review notes (optional for approval, required to reject or retract)' });
@@ -193,11 +196,31 @@ async function articleView(id) {
       h('h2', {}, 'Key points'), h('ul', {}, (a.keyPoints || []).map((k) => h('li', {}, k))),
       h('h2', {}, 'Why it matters for UPSC'), h('p', {}, a.upscRelevance || '—'),
       editForm),
+    a.mergedInto ? h('div', { class: 'panel notice' }, 'This was a duplicate and was merged into ', h('a', { href: `#/article/${a.mergedInto}` }, 'another article'), '.') : null,
+    inReview && lateSources.length ? h('div', { class: 'panel notice' },
+      h('strong', {}, `${lateSources.length} more ${lateSources.length === 1 ? 'outlet' : 'outlets'} covered this story after it was written. `),
+      'Check their reports (marked “added later” below) and update the explainer if they add or contradict anything.') : null,
+    similar.length ? h('div', { class: 'panel' },
+      h('h1', {}, 'Possible duplicates'),
+      h('p', { class: 'muted' }, 'Other recent articles that look like the same event. Merging moves this article’s sources, flagged facts and questions into the other one and rejects this one.'),
+      h('table', {}, h('tbody', {}, similar.map((d) => h('tr', {},
+        h('td', {}, h('a', { href: `#/article/${d._id}` }, d.title), h('div', { class: 'muted' }, `${d.publishers.join(', ') || '—'} · ${fmt(d.createdAt)}`)),
+        h('td', {}, badge(d.status)),
+        h('td', { class: 'muted' }, `${Math.round(d.score * 100)}% similar`),
+        h('td', {}, ['in_review', 'draft'].includes(d.status)
+          ? h('button', { onclick: () => guarded(async () => {
+            if (!confirm(`Merge this article into “${d.title}”?`)) return;
+            const r = await api(`/admin/articles/${a._id}/merge`, { method: 'POST', body: { intoId: d._id } });
+            toast(`Merged. ${r.questionsMoved} questions moved.`);
+            location.hash = `#/article/${d._id}`;
+          }) }, 'Merge into this')
+          : h('span', { class: 'muted' }, d.status === 'published' ? 'Already published: reject this one instead' : ''))))))) : null,
     h('div', { class: 'panel' },
-      h('h1', {}, 'Verify against sources'),
+      h('h1', {}, `Verify against sources (${a.sources.length})`),
       h('ul', {}, a.sources.map((s) => h('li', {},
         h('a', { href: s.url, target: '_blank', rel: 'noopener noreferrer' }, s.title || s.url),
         h('span', { class: 'muted' }, ` — ${s.publisher || ''} ${s.publishedAt ? `(${fmt(s.publishedAt)})` : ''}`),
+        s.addedLater ? h('span', { class: 'badge in_review', style: 'margin-left:6px' }, 'added later') : null,
         s.excerpt ? h('pre', {}, s.excerpt) : null))),
       h('h2', {}, `Flagged facts (${a.factsToVerify.length}) — tick each one after checking it`),
       a.factsToVerify.length ? h('ul', { class: 'facts' }, a.factsToVerify.map((f, i) => h('li', {}, h('label', { style: 'font-weight:400' }, factBoxes[i], f.text)))) : h('p', { class: 'muted' }, 'No facts flagged.'),

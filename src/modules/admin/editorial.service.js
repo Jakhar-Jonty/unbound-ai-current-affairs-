@@ -128,4 +128,40 @@ async function setQuestionStatus(id, action) {
   return question;
 }
 
-module.exports = { approveArticle, rejectArticle, retractArticle, updateArticle, updateQuestion, setQuestionStatus, getArticleOr404 };
+/**
+ * Merges a duplicate article into another one about the same event. Both must
+ * still be in review. Sources, flagged facts (unconfirmed again) and questions
+ * move to the target; the duplicate is rejected with a pointer to the target.
+ */
+async function mergeArticles(sourceId, targetId, { userId }) {
+  if (String(sourceId) === String(targetId)) throw badRequest('Choose a different article to merge into');
+  const [source, target] = await Promise.all([getArticleOr404(sourceId), getArticleOr404(targetId)]);
+  for (const a of [source, target]) {
+    if (!['in_review', 'draft'].includes(a.status)) throw conflict(`Only articles in review can be merged ("${a.title}" is ${a.status})`);
+  }
+  const known = new Set(target.sources.map((src) => src.url));
+  const now = new Date();
+  for (const src of source.sources) {
+    if (!known.has(src.url)) target.sources.push({ ...src.toObject(), addedLater: true, addedAt: now });
+  }
+  const knownFacts = new Set(target.factsToVerify.map((f) => f.text));
+  for (const f of source.factsToVerify) if (!knownFacts.has(f.text)) target.factsToVerify.push({ text: f.text });
+  target.factsToVerify.forEach((f) => { f.confirmed = false; }); // New sources: re-check everything.
+  target.generation.rawItemIds.push(...(source.generation?.rawItemIds || []));
+  if (!target.storyKey && source.storyKey) target.storyKey = source.storyKey;
+  await target.save();
+
+  const moved = await Question.updateMany(
+    { article: source._id, status: { $in: ['in_review', 'draft'] } },
+    { $set: { article: target._id, 'tags.gsPaper': target.tags.gsPaper, 'tags.subjects': target.tags.subjects } },
+  );
+  await require('../pipeline/rawItem.model').RawItem.updateMany({ article: source._id }, { $set: { article: target._id } });
+
+  source.status = 'rejected';
+  source.mergedInto = target._id;
+  source.review = { reviewedBy: userId, reviewedAt: now, notes: `Merged into "${target.title}"` };
+  await source.save();
+  return { target, source, questionsMoved: moved.modifiedCount };
+}
+
+module.exports = { mergeArticles, approveArticle, rejectArticle, retractArticle, updateArticle, updateQuestion, setQuestionStatus, getArticleOr404 };

@@ -45,6 +45,15 @@ AI-generated content is the main risk in a current affairs product, so the pipel
 - **Past scores stay fixed.** Quiz attempts store the answer key and question version at the time of the attempt. A later answer-key fix is flagged on the result screen but doesn't change the past score.
 - **Audit log.** Every editorial and admin action is recorded with who did it and when.
 
+### Story grouping
+
+Several outlets usually report the same event. The pipeline groups them so editors review each story once, and the explainer draws on every report:
+
+1. **When news is collected**, each new item is compared with items from the last 72 hours (`src/modules/pipeline/similarity.js`). It uses word-overlap scoring (TF-IDF cosine) on headline and summary and runs locally, so it costs nothing and works with any AI provider. Close matches share a `storyKey`.
+2. **When articles are written**, all queued items in a story are sent to the AI together (up to 4, official sources such as PIB, ministries, RBI and courts first). The prompt tells the model to prefer official sources and to flag any disagreement between outlets as a fact to verify.
+3. **Coverage arriving later** is added as an extra source (marked "added later") while the article is still in review. Published, retracted and rejected stories are never changed or brought back by the pipeline.
+4. **Missed duplicates.** The threshold is deliberately conservative, because blending two different stories is worse than missing a duplicate. Each article in review shows "Possible duplicates" in the admin panel; merging moves sources, flagged facts and questions into the other article, resets fact confirmations, and rejects the duplicate with a link to where it went.
+
 ### Reliable background jobs
 
 - The worker runs as a **separate process** from the API, so long AI batches don't slow down requests.
@@ -163,6 +172,8 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/admin/dashboard` | Counts by status, last run of each job |
 | GET | `/admin/articles` | All articles, `?status=in_review` |
 | GET | `/admin/articles/:id` | Full detail with questions, revisions, history and raw AI output |
+| GET | `/admin/articles/:id/similar` | Up to 5 recent articles that look like the same event |
+| POST | `/admin/articles/:id/merge` | `{ intoId }` merges this article (in review) into another one in review |
 | POST | `/admin/articles` | Write an article by hand (goes to review) |
 | PATCH | `/admin/articles/:id` | Edit; published articles need `correctionNote` |
 | POST | `/admin/articles/:id/approve` | `{ confirmedFacts: [indexes], notes? }` publishes the article and its questions |
@@ -195,7 +206,6 @@ The plan's next step is "background workers + Redis". Jobs already sit behind `r
 
 ## Not in this release
 
-- **Grouping related stories.** Two outlets covering the same event become two review items unless they share a URL. Editors can reject the duplicate.
 - **Provider batch APIs.** The pipeline processes items in small concurrent batches. Moving overnight runs to a provider's batch API (about 50% cheaper on Claude and OpenAI) is a possible cost optimisation.
 - **Email verification and social login.**
 - From the later releases in the plan: AI tutor, audio briefings, leaderboards and study plans. Per-question, per-subject attempt data is already being recorded, so study plans and leaderboards can use history from day one.

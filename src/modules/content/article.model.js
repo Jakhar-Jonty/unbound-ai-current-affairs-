@@ -11,6 +11,9 @@ const sourceSchema = new mongoose.Schema(
     title: String,
     publishedAt: Date,
     excerpt: String,
+    // Set when another outlet's coverage was added after the article was written.
+    addedLater: Boolean,
+    addedAt: Date,
   },
   { _id: false },
 );
@@ -74,6 +77,9 @@ const articleSchema = new mongoose.Schema(
       rawOutput: { type: String, select: false },
     },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // Story grouping: all feed items about this event share this key.
+    storyKey: { type: mongoose.Schema.Types.ObjectId, index: true },
+    mergedInto: { type: mongoose.Schema.Types.ObjectId, ref: 'Article' },
   },
   { timestamps: true },
 );

@@ -18,6 +18,10 @@ const rawItemSchema = new mongoose.Schema(
     processingStartedAt: Date,
     skipReason: String,
     article: { type: mongoose.Schema.Types.ObjectId, ref: 'Article' },
+    // Items about the same event share a storyKey (the _id of the first item seen).
+    storyKey: { type: mongoose.Schema.Types.ObjectId, index: true },
+    storyScore: Number, // similarity to the item it was grouped with
+    attachedLater: Boolean, // added as a source to an article that already existed
   },
   { timestamps: true },
 );

@@ -17,6 +17,7 @@ const push = require('../notifications/push.service');
 const { AuditLog, audit } = require('./auditLog.model');
 const editorial = require('./editorial.service');
 const { GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { similarTo } = require('../pipeline/similarity');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('editor'));
@@ -48,7 +49,7 @@ router.get('/articles', validate(pagination.extend({ status: z.enum(ARTICLE_STAT
   const filter = { ...(status ? { status } : {}), ...(q ? { $text: { $search: q } } : {}) };
   const [items, total] = await Promise.all([
     Article.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)
-      .select('slug title status version tags createdAt publishedAt generation.provider generation.model factsToVerify').lean(),
+      .select('slug title status version tags createdAt publishedAt generation.provider generation.model factsToVerify sources.publisher').lean(),
     Article.countDocuments(filter),
   ]);
   res.json({ items, page, limit, total });
@@ -152,6 +153,29 @@ router.post('/articles/:id/retract', validate(reasonSchema), async (req, res) =>
   const article = await editorial.retractArticle(idParam(req), { userId: req.user._id, reason: req.valid.body.reason });
   await audit(req, 'article.retract', 'Article', article._id, req.valid.body);
   res.json({ article });
+});
+
+// Articles from the last 7 days that look like the same event (suggestions for merging).
+router.get('/articles/:id/similar', async (req, res) => {
+  const article = await editorial.getArticleOr404(idParam(req));
+  const since = new Date((article.createdAt || new Date()).getTime() - 7 * 86400000);
+  const candidates = await Article.find({ _id: { $ne: article._id }, status: { $in: ['in_review', 'draft', 'published'] }, createdAt: { $gte: since } })
+    .select('title summary status createdAt sources.publisher').limit(300).lean();
+  const asItem = (a) => ({ title: a.title, description: a.summary });
+  const matches = similarTo(asItem(article), candidates.map(asItem), { threshold: 0.2, minSharedTitleWords: 1 }).slice(0, 5);
+  res.json({
+    items: matches.map((m) => {
+      const a = candidates[m.index];
+      return { _id: a._id, title: a.title, status: a.status, createdAt: a.createdAt, publishers: [...new Set((a.sources || []).map((src) => src.publisher).filter(Boolean))], score: Math.round(m.score * 100) / 100 };
+    }),
+  });
+});
+
+router.post('/articles/:id/merge', validate(z.object({ intoId: objectId })), async (req, res) => {
+  const { target, source, questionsMoved } = await editorial.mergeArticles(idParam(req), req.valid.body.intoId, { userId: req.user._id });
+  await audit(req, 'article.merge', 'Article', source._id, { into: target._id, questionsMoved });
+  await audit(req, 'article.merge_received', 'Article', target._id, { from: source._id, questionsMoved });
+  res.json({ article: target, questionsMoved });
 });
 
 router.get('/articles/:id/revisions/:version', async (req, res) => {
