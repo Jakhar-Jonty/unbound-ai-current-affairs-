@@ -7,6 +7,7 @@ const { requireAuth, optionalAuth } = require('../users/auth.middleware');
 const { Quiz } = require('./quiz.model');
 const { Attempt } = require('./attempt.model');
 const svc = require('./quiz.service');
+const { langOf } = require('../content/i18n');
 const { isArchive, isPremium, premiumRequired } = require('../billing/entitlements');
 
 const router = express.Router();
@@ -34,7 +35,7 @@ async function sendQuiz(req, res, quizId) {
   }
   // Old quizzes are premium, but your own past attempts stay reachable.
   if (isArchive(quiz.publishedAt) && !isPremium(req.user) && !myAttempt) throw premiumRequired('archive');
-  res.json({ quiz: { ...quizSummary(quiz), questionCount: questions.length }, questions: questions.map(svc.toPlayable), myAttempt });
+  res.json({ quiz: { ...quizSummary(quiz), questionCount: questions.length }, questions: questions.map((q) => svc.toPlayable(q, langOf(req))), myAttempt });
 }
 
 router.get('/quizzes/today', optionalAuth, async (req, res) => {
@@ -73,7 +74,7 @@ router.post('/quizzes/:id/check', guestLimiter, validate(attemptSchema), async (
   objectId.parse(req.params.id);
   const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();
   if (quiz && isArchive(quiz.publishedAt)) throw premiumRequired('archive');
-  res.json({ result: await svc.checkAnswers({ quizId: req.params.id, answers: req.valid.body.answers }) });
+  res.json({ result: await svc.checkAnswers({ quizId: req.params.id, answers: req.valid.body.answers, lang: langOf(req) }) });
 });
 
 router.post('/quizzes/:id/attempts', requireAuth, validate(attemptSchema), async (req, res) => {
@@ -81,14 +82,14 @@ router.post('/quizzes/:id/attempts', requireAuth, validate(attemptSchema), async
   const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();
   if (quiz && isArchive(quiz.publishedAt) && !isPremium(req.user)) throw premiumRequired('archive');
   const attempt = await svc.submitAttempt({ userId: req.user._id, quizId: req.params.id, ...req.valid.body });
-  res.status(201).json({ result: await svc.attemptResult(attempt) });
+  res.status(201).json({ result: await svc.attemptResult(attempt, langOf(req)) });
 });
 
 router.get('/attempts/:id', requireAuth, async (req, res) => {
   objectId.parse(req.params.id);
   const attempt = await Attempt.findOne({ _id: req.params.id, user: req.user._id }).lean();
   if (!attempt) throw notFound('Attempt not found');
-  res.json({ result: await svc.attemptResult(attempt) });
+  res.json({ result: await svc.attemptResult(attempt, langOf(req)) });
 });
 
 router.get('/me/attempts', requireAuth, validate(pagination, 'query'), async (req, res) => {

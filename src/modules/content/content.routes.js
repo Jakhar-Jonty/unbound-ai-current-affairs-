@@ -5,10 +5,11 @@ const { validate, pagination, z } = require('../../lib/validate');
 const { notFound } = require('../../lib/errors');
 const { Article } = require('./article.model');
 const { toListItem, toPublicDetail } = require('./content.service');
+const { langOf } = require('./i18n');
 const { optionalAuth } = require('../users/auth.middleware');
 const { isArchive, isPremium, premiumRequired } = require('../billing/entitlements');
 const { vectorize, cosine } = require('../pipeline/similarity');
-const { GS_PAPERS, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { GS_PAPERS, GS_PAPERS_HI, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ function publicCache(seconds) {
 }
 
 router.get('/taxonomy', publicCache(3600), (_req, res) => {
-  res.json({ gsPapers: GS_PAPERS, subjects: SUBJECTS });
+  res.json({ gsPapers: GS_PAPERS, gsPapersHi: GS_PAPERS_HI, subjects: SUBJECTS });
 });
 
 const listQuery = pagination.extend({
@@ -51,7 +52,8 @@ router.get('/articles', publicCache(60), validate(listQuery, 'query'), async (re
     Article.countDocuments(filter),
   ]);
   // `premium` marks archive items (same for every user, so the list stays cacheable).
-  res.json({ items: items.map((a) => ({ ...toListItem(a), premium: isArchive(a.publishedAt) })), page, limit, total });
+  const lang = langOf(req);
+  res.json({ items: items.map((a) => ({ ...toListItem(a, lang), premium: isArchive(a.publishedAt) })), page, limit, total });
 });
 
 /**
@@ -75,7 +77,7 @@ router.get('/articles/:id/related', publicCache(300), async (req, res) => {
     .map((a, i) => ({ a, score: cosine(vecs[0], vecs[i + 1]) }))
     .sort((x, y) => y.score - x.score || y.a.publishedAt - x.a.publishedAt)
     .slice(0, 4);
-  res.json({ items: ranked.map(({ a }) => ({ ...toListItem(a), premium: isArchive(a.publishedAt) })) });
+  res.json({ items: ranked.map(({ a }) => ({ ...toListItem(a, langOf(req)), premium: isArchive(a.publishedAt) })) });
 });
 
 router.get('/articles/:idOrSlug', optionalAuth, async (req, res) => {
@@ -97,7 +99,7 @@ router.get('/articles/:idOrSlug', optionalAuth, async (req, res) => {
   } else {
     res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   }
-  res.json({ article: toPublicDetail(article) });
+  res.json({ article: toPublicDetail(article, langOf(req)) });
 });
 
 module.exports = router;

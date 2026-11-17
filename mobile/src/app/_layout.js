@@ -6,7 +6,8 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { getApiLang, setApiLang } from '../lib/api';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { PrefsProvider, usePrefs } from '../lib/prefs';
 import { useMeta } from '../lib/queries';
@@ -69,8 +70,22 @@ function useOnboarding() {
   }, [ready, loading, prefs.onboarded, user, segments, update]);
 }
 
+/** Sends the chosen content language with every request; reloads content when it changes. */
+function useContentLanguage() {
+  const { prefs, ready } = usePrefs();
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!ready) return;
+    const lang = prefs.lang === 'hi' ? 'hi' : 'en';
+    if (getApiLang() === lang) return;
+    setApiLang(lang);
+    qc.resetQueries();
+  }, [ready, prefs.lang, qc]);
+}
+
 function RootStack() {
   const c = useTheme();
+  useContentLanguage();
   useNotificationRouting();
   useOnboarding();
   return (

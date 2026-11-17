@@ -50,7 +50,10 @@ const config = {
       ingest: process.env.CRON_INGEST || '0 */2 * * *',
       generate: process.env.CRON_GENERATE || '20 */2 * * *',
       dailyQuiz: process.env.CRON_DAILY_QUIZ || '0 7 * * *',
+      translate: process.env.CRON_TRANSLATE || '40 */2 * * *',
     },
+    // Articles translated into Hindi per run (one AI call each).
+    translateBatchSize: int('TRANSLATE_BATCH_SIZE', 5),
   },
   mail: {
     // Any SMTP provider, e.g. smtps://user:pass@smtp.example.com:465

@@ -7,13 +7,16 @@ const { Attempt } = require('./attempt.model');
 const { PracticeAnswer } = require('../practice/practice.model');
 const { badRequest, conflict, notFound } = require('../../lib/errors');
 const { localDateString } = require('../../lib/dates');
+const { questionText } = require('../content/i18n');
 
 /** Question as shown to a user before answering — never includes the answer. */
-function toPlayable(q) {
+function toPlayable(q, lang = 'en') {
+  const t = questionText(q, lang);
   return {
     id: q._id,
-    stem: q.stem,
-    options: q.options,
+    stem: t.stem,
+    options: t.options,
+    lang: t.lang,
     difficulty: q.difficulty,
     tags: q.tags,
     version: q.version,
@@ -83,7 +86,7 @@ async function submitAttempt({ userId, quizId, answers, durationMs }) {
 }
 
 /** Full result with explanations. Notes when a question was corrected after the attempt. */
-async function attemptResult(attempt) {
+async function attemptResult(attempt, lang = 'en') {
   const questions = await Question.find({ _id: { $in: attempt.answers.map((a) => a.question) } }).lean();
   const byId = new Map(questions.map((q) => [String(q._id), q]));
   return {
@@ -94,14 +97,16 @@ async function attemptResult(attempt) {
     submittedAt: attempt.submittedAt,
     answers: attempt.answers.map((a) => {
       const q = byId.get(String(a.question));
+      const t = q ? questionText(q, lang) : {};
       return {
         questionId: a.question,
-        stem: q?.stem,
-        options: q?.options,
+        stem: t.stem,
+        options: t.options,
+        lang: t.lang,
         selectedIndex: a.selectedIndex,
         correctIndex: a.correctIndex,
         isCorrect: a.isCorrect,
-        explanation: q?.explanation,
+        explanation: t.explanation,
         article: q?.article,
         updatedSinceAttempt: q ? q.version !== a.questionVersion : false,
         currentCorrectIndex: q && q.version !== a.questionVersion ? q.correctIndex : undefined,
@@ -116,7 +121,7 @@ async function attemptResult(attempt) {
  * attempt, with `id: null` and `saved: false`. The app keeps it on the device and
  * submits it as a real attempt if the guest signs up.
  */
-async function checkAnswers({ quizId, answers }) {
+async function checkAnswers({ quizId, answers, lang = 'en' }) {
   const { quiz, questions, graded } = await gradeAnswers(quizId, answers);
   const byId = new Map(questions.map((q) => [String(q._id), q]));
   return {
@@ -128,9 +133,10 @@ async function checkAnswers({ quizId, answers }) {
     submittedAt: new Date(),
     answers: graded.map((g) => {
       const q = byId.get(String(g.question));
+      const t = questionText(q, lang);
       return {
-        questionId: g.question, stem: q.stem, options: q.options, selectedIndex: g.selectedIndex,
-        correctIndex: g.correctIndex, isCorrect: g.isCorrect, explanation: q.explanation, article: q.article,
+        questionId: g.question, stem: t.stem, options: t.options, lang: t.lang, selectedIndex: g.selectedIndex,
+        correctIndex: g.correctIndex, isCorrect: g.isCorrect, explanation: t.explanation, article: q.article,
         updatedSinceAttempt: false, retired: false,
       };
     }),

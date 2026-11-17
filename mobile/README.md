@@ -16,6 +16,7 @@ React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs 
 
 - **Premium:** plan comparison and status; on Android and web it opens the secure Razorpay web checkout. Locked content shows an upgrade prompt, and premium is refreshed when you come back from checkout.
 - **Insights (Premium):** weakest subjects with one-tap practice, 8-week chart, accuracy by subject and GS paper, questions to revisit
+- **Hindi:** English / हिंदी switch in the intro, Profile, and on articles and quizzes. Articles, key points, quiz questions, options and explanations come in Hindi once an editor has published the translation; otherwise English with a short note. Labels around the content (key points, sources, reading time, subject names) follow the chosen language; the rest of the app is in English.
 - **Sign-in:** email and password with email verification, Google, and Apple (iOS)
 - **Reading:** reading time on cards and articles, a progress bar while reading, related articles, and “Continue reading” on Today for an article you started but didn’t finish
 - **For you feed:** pick your subjects (in the intro or Profile → My subjects; saved to the account when signed in) and Today shows them first

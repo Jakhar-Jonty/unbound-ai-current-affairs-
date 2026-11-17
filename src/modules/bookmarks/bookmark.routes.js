@@ -7,6 +7,7 @@ const { Bookmark } = require('./bookmark.model');
 const { Article } = require('../content/article.model');
 const { Question } = require('../quiz/question.model');
 const { toListItem } = require('../content/content.service');
+const { langOf, questionText } = require('../content/i18n');
 const config = require('../../config');
 const { isPremium, premiumRequired } = require('../billing/entitlements');
 
@@ -16,14 +17,15 @@ router.use('/me/bookmarks', requireAuth);
 const MODELS = { article: ['Article', Article], question: ['Question', Question] };
 const VISIBLE = { article: ['published', 'retracted'], question: ['published', 'retired'] };
 
-function present(b) {
+function present(b, lang = 'en') {
   const base = { id: b._id, itemType: b.itemType, note: b.note, createdAt: b.createdAt };
   const it = b.item;
   if (!it || typeof it !== 'object' || !it._id) return { ...base, item: null, unavailable: true };
-  if (b.itemType === 'article') return { ...base, item: toListItem(it) };
+  if (b.itemType === 'article') return { ...base, item: toListItem(it, lang) };
+  const t = questionText(it, lang);
   return {
     ...base,
-    item: { id: it._id, stem: it.stem, options: it.options, correctIndex: it.correctIndex, explanation: it.explanation, status: it.status, article: it.article },
+    item: { id: it._id, stem: t.stem, options: t.options, lang: t.lang, correctIndex: it.correctIndex, explanation: t.explanation, status: it.status, article: it.article },
   };
 }
 
@@ -34,7 +36,7 @@ router.get('/me/bookmarks', validate(pagination.extend({ type: z.enum(['article'
     Bookmark.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).populate('item').lean(),
     Bookmark.countDocuments(filter),
   ]);
-  res.json({ items: items.map(present), page, limit, total });
+  res.json({ items: items.map((b) => present(b, langOf(req))), page, limit, total });
 });
 
 // Which of the given items the user has bookmarked: { bookmarks: { [itemId]: bookmarkId } }.

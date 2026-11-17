@@ -13,6 +13,8 @@ import { PremiumGate, isPremiumError } from '../../components/Premium';
 import PressableScale from '../../components/PressableScale';
 import FadeIn from '../../components/FadeIn';
 import { tap } from '../../lib/haptics';
+import LanguageSwitch from '../../components/LanguageSwitch';
+import { usePrefs } from '../../lib/prefs';
 import { Button, Card, Empty, ErrorView, Loading, ProgressBar, Screen, T } from '../../components/ui';
 
 // UPSC Prelims pace: 100 questions in 2 hours.
@@ -44,6 +46,7 @@ export default function QuizScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams();
   const qc = useQueryClient();
+  const { prefs } = usePrefs();
   const { user } = useAuth();
   const guest = !user?.id;
   const { data, isLoading, error, refetch } = useQuiz(id);
@@ -132,6 +135,12 @@ export default function QuizScreen() {
           <T variant="caption" color="textSecondary">{(data.quiz.title || '').toUpperCase()}</T>
           <T variant="display" style={{ marginTop: spacing.xs }}>{questions.length} questions</T>
           <T color="textSecondary" style={{ marginTop: spacing.sm }}>Exam-style questions from recent news. You’ll see the answers and explanations after you submit.</T>
+          <View style={{ marginTop: spacing.lg }}><LanguageSwitch /></View>
+          {prefs.lang === 'hi' && questions.some((x) => x.lang !== 'hi') ? (
+            <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm }} lang="hi">
+              {questions.every((x) => x.lang !== 'hi') ? 'इस क्विज़ का हिंदी अनुवाद अभी समीक्षा में है, इसलिए प्रश्न अंग्रेज़ी में हैं।' : 'कुछ प्रश्न अभी केवल अंग्रेज़ी में हैं।'}
+            </T>
+          ) : null}
           {guest ? (
             <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm }}>
               You’re not signed in: your result stays on this device, and is saved to your account if you sign up afterwards.

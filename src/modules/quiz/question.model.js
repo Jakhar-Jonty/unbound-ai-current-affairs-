@@ -27,6 +27,20 @@ const questionSchema = new mongoose.Schema(
       model: String,
       promptVersion: String,
     },
+    // Hindi version; same rules as Article.translations (see article.model.js).
+    translations: {
+      hi: {
+        type: new mongoose.Schema({
+          stem: String,
+          options: [String],
+          explanation: String,
+          status: { type: String, enum: ['in_review', 'published'], required: true },
+          sourceVersion: { type: Number, required: true },
+          edited: Boolean,
+        }, { _id: false }),
+        default: undefined,
+      },
+    },
   },
   { timestamps: true },
 );

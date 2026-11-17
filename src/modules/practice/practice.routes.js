@@ -8,6 +8,7 @@ const { rateLimit } = require('express-rate-limit');
 const { Question } = require('../quiz/question.model');
 const { Attempt } = require('../quiz/attempt.model');
 const { toPlayable } = require('../quiz/quiz.service');
+const { langOf, questionText } = require('../content/i18n');
 const { PracticeAnswer } = require('./practice.model');
 const { SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 const config = require('../../config');
@@ -73,7 +74,7 @@ router.get('/practice/questions', validate(z.object({
     const more = await Question.aggregate([{ $match: { ...base, _id: { $in: mastered } } }, { $sample: { size: count - fresh.length } }]);
     picked = [...fresh, ...more];
   }
-  res.json({ subject, questions: picked.map(toPlayable), newQuestions: fresh.length, remainingToday: remaining });
+  res.json({ subject, questions: picked.map((q) => toPlayable(q, langOf(req))), newQuestions: fresh.length, remainingToday: remaining });
 });
 
 // Checks one answer and returns the explanation straight away.
@@ -85,14 +86,15 @@ router.post('/practice/answers', guestLimit, validate(z.object({ questionId: obj
   if (!q) throw notFound('Question not found');
   if (selectedIndex >= q.options.length) throw badRequest('Invalid option');
   const isCorrect = selectedIndex === q.correctIndex;
+  const { explanation } = questionText(q, langOf(req));
   if (!req.user) {
-    return res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation: q.explanation, article: q.article, remainingToday: null, saved: false });
+    return res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation, article: q.article, remainingToday: null, saved: false });
   }
   await PracticeAnswer.create({
     user: req.user._id, question: q._id, questionVersion: q.version, selectedIndex, isCorrect,
     subjects: q.tags?.subjects || [], gsPaper: q.tags?.gsPaper,
   });
-  res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation: q.explanation, article: q.article, remainingToday: remaining === null ? null : remaining - 1 });
+  res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation, article: q.article, remainingToday: remaining === null ? null : remaining - 1 });
 });
 
 router.get('/practice/stats', requireAuth, async (req, res) => {

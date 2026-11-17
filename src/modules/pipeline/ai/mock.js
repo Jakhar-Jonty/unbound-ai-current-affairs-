@@ -5,11 +5,33 @@
  * output from the source item so the whole pipeline can run without an API key.
  * Headlines containing "[irrelevant]" are marked not relevant; "[fail]" throws.
  */
+/**
+ * Translation mode: marks each English string as Hindi ("[हिंदी] …"), keeping the
+ * numbers so the checks pass. Article titles containing "[bad-hindi]" drop a number.
+ */
+function mockTranslate({ article, includeArticle, questions }) {
+  const hi = (s) => `[हिंदी] ${s}`;
+  const data = {
+    ...(includeArticle ? {
+      article: {
+        title: article.title.includes('[bad-hindi]') ? hi(article.title.replace(/\d/g, '')) : hi(article.title),
+        summary: hi(article.summary),
+        body: hi(article.body),
+        keyPoints: (article.keyPoints || []).map(hi),
+        upscRelevance: hi(article.upscRelevance || 'UPSC'),
+      },
+    } : {}),
+    questions: questions.map((q) => ({ id: String(q._id), stem: hi(q.stem), options: q.options.map(hi), explanation: hi(q.explanation) })),
+  };
+  return { raw: JSON.stringify(data), data, model: 'mock-1' };
+}
+
 function createMockProvider() {
   return {
     name: 'mock',
     model: 'mock-1',
     async generateJSON({ context }) {
+      if (context?.kind === 'translate') return mockTranslate(context);
       const item = context?.item || {};
       const title = item.title || 'Untitled';
       if (title.includes('[fail]')) throw new Error('Mock provider failure');

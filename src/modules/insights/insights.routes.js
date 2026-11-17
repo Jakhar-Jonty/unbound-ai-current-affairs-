@@ -6,6 +6,7 @@ const { Attempt } = require('../quiz/attempt.model');
 const { Question } = require('../quiz/question.model');
 const { PracticeAnswer } = require('../practice/practice.model');
 const { weekRange } = require('../../lib/dates');
+const { langOf, questionText } = require('../content/i18n');
 
 const router = express.Router();
 const DAY = 86400000;
@@ -84,10 +85,10 @@ router.get('/me/insights', requireAuth, async (req, res) => {
   const latest = new Map();
   for (const r of rows) if (!latest.has(r.question)) latest.set(r.question, r);
   const wrongIds = [...latest.values()].filter((r) => !r.isCorrect && r.answered).slice(0, 10).map((r) => r.question);
-  const qs = await Question.find({ _id: { $in: wrongIds }, status: 'published' }).select('stem article tags').lean();
+  const qs = await Question.find({ _id: { $in: wrongIds }, status: 'published' }).select('stem options explanation version translations article tags').lean();
   const byId = new Map(qs.map((q) => [String(q._id), q]));
   const toRevisit = wrongIds.map((id) => byId.get(id)).filter(Boolean)
-    .map((q) => ({ id: q._id, stem: q.stem, article: q.article, subjects: q.tags?.subjects || [] }));
+    .map((q) => ({ id: q._id, stem: questionText(q, langOf(req)).stem, article: q.article, subjects: q.tags?.subjects || [] }));
 
   const timed = rows.filter((r) => r.timeMs);
   res.json({

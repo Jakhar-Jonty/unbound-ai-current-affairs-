@@ -41,3 +41,9 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--field); p
 #toast div { background: var(--text); color: var(--bg); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 6px; margin-top: 8px; }
 .login { max-width: 360px; margin: 60px auto; }
 .panel.notice { border-left: 4px solid var(--accent); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0; }
+.pair .en { white-space: pre-wrap; padding: 6px 8px; border-radius: 6px; background: var(--field); font-size: 14px; }
+.pair textarea, .pair input { font-size: 15px; line-height: 1.7; }
+.pair textarea { field-sizing: content; min-height: 90px; max-height: 1200px; }
+@media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+.error-text { color: var(--bad); }

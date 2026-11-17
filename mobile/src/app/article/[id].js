@@ -11,7 +11,9 @@ import BookmarkButton from '../../components/BookmarkButton';
 import { PremiumGate, isPremiumError } from '../../components/Premium';
 import { TEXT_SCALES, usePrefs } from '../../lib/prefs';
 import { tap } from '../../lib/haptics';
-import ArticleCard, { subjectLabel } from '../../components/ArticleCard';
+import ArticleCard, { paperLabel, subjectLabel } from '../../components/ArticleCard';
+import LanguageSwitch from '../../components/LanguageSwitch';
+import { strings } from '../../lib/strings';
 import { Card, Divider, ErrorView, Loading, OfflineNote, Screen, SectionTitle, Tag, T } from '../../components/ui';
 
 export default function ArticleScreen() {
@@ -35,7 +37,7 @@ export default function ArticleScreen() {
     }
   }, [a, progress]);
   const scale = prefs.textScale || 1;
-  const read = { fontSize: 16 * scale, lineHeight: 25 * scale };
+  const baseRead = { fontSize: 16 * scale, lineHeight: 25 * scale };
 
   if (isLoading) return <Loading />;
   if (isPremiumError(error)) {
@@ -43,6 +45,9 @@ export default function ArticleScreen() {
   }
   if (error) return <ErrorView error={error} onRetry={refetch} />;
   const retracted = a.status === 'retracted';
+  const L = strings(a.lang);
+  // Devanagari needs a little more line height to stay readable.
+  const read = a.lang === 'hi' ? { fontSize: 17 * scale, lineHeight: 30 * scale } : baseRead;
 
   const cycleSize = () => {
     tap();
@@ -75,23 +80,31 @@ export default function ArticleScreen() {
       </View>
       <Screen edges={[]} onScroll={onScroll}>
         {a.offline ? <OfflineNote /> : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: spacing.md }}>
+          <LanguageSwitch compact />
+        </View>
+        {prefs.lang === 'hi' && a.lang !== 'hi' ? (
+          <Card style={{ marginBottom: spacing.lg, backgroundColor: c.accentSoft, borderColor: 'transparent' }}>
+            <T variant="small" lang="hi">{strings('hi').noHindi}</T>
+          </Card>
+        ) : null}
         {retracted ? (
           <Card style={{ borderColor: c.incorrect, backgroundColor: c.incorrectSoft, marginBottom: spacing.lg }}>
             <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
               <Ionicons name="alert-circle" size={20} color={c.incorrect} />
-              <T variant="heading" color="incorrect">This article was retracted</T>
+              <T variant="heading" color="incorrect">{L.retracted}</T>
             </View>
             <T variant="small" style={{ marginTop: spacing.xs }}>{a.retraction?.reason}</T>
           </Card>
         ) : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
-          <Tag label={a.tags?.gsPaper === 'PRELIMS' ? 'Prelims' : a.tags?.gsPaper} />
-          {(a.tags?.subjects || []).map((s) => <Tag key={s} label={subjectLabel(taxonomy, s)} />)}
+          <Tag label={paperLabel(a.tags?.gsPaper, a.lang)} />
+          {(a.tags?.subjects || []).map((s) => <Tag key={s} label={subjectLabel(taxonomy, s, a.lang)} />)}
         </View>
         <T variant="title" style={{ marginTop: spacing.md }} accessibilityRole="header">{a.title}</T>
         <T variant="small" color="textSecondary" style={{ marginTop: spacing.xs }}>
-          {formatDate(a.publishedAt)}{a.readingMinutes ? ` · ${a.readingMinutes} min read` : ''}{a.version > 1 ? ` · Updated ${formatDate(a.updatedAt)}` : ''}
+          {formatDate(a.publishedAt)}{a.readingMinutes ? ` · ${L.minRead(a.readingMinutes)}` : ''}{a.version > 1 ? ` · ${L.updated} ${formatDate(a.updatedAt)}` : ''}
         </T>
 
         <View style={{ borderLeftWidth: 3, borderLeftColor: c.accent, paddingLeft: spacing.md, marginTop: spacing.lg }}>
@@ -100,7 +113,7 @@ export default function ArticleScreen() {
 
         {a.keyPoints?.length ? (
           <>
-            <SectionTitle>Key points</SectionTitle>
+            <SectionTitle>{L.keyPoints}</SectionTitle>
             {a.keyPoints.map((k, i) => (
               <View key={i} style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.accent, marginTop: 10 }} />
@@ -110,19 +123,19 @@ export default function ArticleScreen() {
           </>
         ) : null}
 
-        <SectionTitle>Explainer</SectionTitle>
+        <SectionTitle>{L.explainer}</SectionTitle>
         {a.body.split('\n').filter((p) => p.trim()).map((p, i) => <T key={i} style={[read, { marginBottom: spacing.md }]}>{p}</T>)}
 
         {a.upscRelevance ? (
           <Card style={{ backgroundColor: c.accentSoft, borderColor: 'transparent', marginTop: spacing.sm }}>
-            <T variant="caption" style={{ marginBottom: spacing.xs }}>WHY IT MATTERS FOR UPSC</T>
+            <T variant="caption" style={{ marginBottom: spacing.xs }}>{L.whyUpsc}</T>
             <T style={read}>{a.upscRelevance}</T>
           </Card>
         ) : null}
 
         {a.corrections?.length ? (
           <>
-            <SectionTitle>Corrections</SectionTitle>
+            <SectionTitle>{L.corrections}</SectionTitle>
             {a.corrections.map((corr, i) => (
               <T key={i} variant="small" color="textSecondary" style={{ marginBottom: spacing.xs }}>{formatDate(corr.at)}: {corr.note}</T>
             ))}
@@ -130,7 +143,7 @@ export default function ArticleScreen() {
         ) : null}
 
         <Divider />
-        <T variant="caption" color="textSecondary">SOURCES</T>
+        <T variant="caption" color="textSecondary">{L.sources}</T>
         {a.sources.map((s) => (
           <T
             key={s.url}
@@ -145,7 +158,7 @@ export default function ArticleScreen() {
         {related?.length ? (
           <>
             <Divider />
-            <T variant="caption" color="textSecondary" style={{ marginBottom: spacing.md }}>RELATED</T>
+            <T variant="caption" color="textSecondary" style={{ marginBottom: spacing.md }}>{L.related}</T>
             {related.map((r) => <ArticleCard key={r.id} article={r} />)}
           </>
         ) : null}

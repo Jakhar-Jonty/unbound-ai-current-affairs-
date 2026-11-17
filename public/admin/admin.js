@@ -138,7 +138,7 @@ function questionCard(q, article, reload) {
 }
 
 async function articleView(id) {
-  const { article: a, questions, revisions, history } = await api(`/admin/articles/${id}`);
+  const { article: a, questions, revisions, history, hindi } = await api(`/admin/articles/${id}`);
   const reload = () => render();
   const inReview = ['in_review', 'draft'].includes(a.status);
   const similar = inReview ? (await api(`/admin/articles/${id}/similar`)).items : [];
@@ -228,6 +228,7 @@ async function articleView(id) {
       h('div', { style: 'margin-top:12px' }, actions),
       a.retraction?.reason ? h('p', { class: 'muted' }, `Retracted: ${a.retraction.reason}`) : null,
       a.review?.notes ? h('p', { class: 'muted' }, `Review notes: ${a.review.notes}`) : null),
+    a.status === 'published' ? hindiPanel(a, questions.filter((q) => q.status === 'published'), hindi, reload) : null,
     h('div', { class: 'panel' }, h('h1', {}, `Questions (${questions.length})`), questions.map((q) => questionCard(q, a, reload))),
     h('div', { class: 'panel' },
       h('h1', {}, 'Provenance & history'),
@@ -274,6 +275,93 @@ async function quizzesView() {
         h('td', {}, q.status === 'draft' ? h('button', { onclick: () => guarded(async () => { await api(`/admin/quizzes/${q._id}/publish`, { method: 'POST' }); render(); }) }, 'Publish') : null))))));
 }
 
+const HINDI_STATE = { missing: 'not translated', outdated: 'outdated (English changed)', in_review: 'waiting for review', published: 'published' };
+
+/** Hindi review: English and Hindi side by side, editable, then publish. */
+function hindiPanel(a, questions, hindi, reload) {
+  const t = a.translations?.hi;
+  const current = hindi.article === 'in_review' || hindi.article === 'published';
+  const field = (label, en, el) => h('div', { class: 'pair' },
+    h('div', {}, h('label', {}, `${label} (English)`), h('div', { class: 'en' }, en || '—')),
+    h('div', {}, h('label', {}, `${label} (हिंदी)`), el));
+  const f = current ? {
+    title: h('input', { value: t.title, lang: 'hi' }),
+    summary: h('textarea', { lang: 'hi' }, t.summary),
+    body: h('textarea', { lang: 'hi', style: 'min-height:220px' }, t.body),
+    keyPoints: h('textarea', { lang: 'hi' }, (t.keyPoints || []).join('\n')),
+    upscRelevance: h('textarea', { lang: 'hi' }, t.upscRelevance || ''),
+  } : null;
+  const waiting = hindi.article === 'in_review' || hindi.questions.some((q) => q.state === 'in_review');
+
+  const qBlocks = questions.map((q) => {
+    const state = hindi.questions.find((x) => x.id === q._id)?.state || 'missing';
+    const qt = q.translations?.hi;
+    if (!(state === 'in_review' || state === 'published')) {
+      return h('div', { class: 'q' }, h('p', { class: 'muted' }, `Question: Hindi ${HINDI_STATE[state]}`), h('p', {}, q.stem));
+    }
+    const stem = h('textarea', { lang: 'hi' }, qt.stem);
+    const opts = qt.options.map((o) => h('input', { value: o, lang: 'hi' }));
+    const expl = h('textarea', { lang: 'hi' }, qt.explanation);
+    return h('div', { class: 'q' },
+      h('div', { class: 'row' }, badge(state), h('span', { class: 'muted' }, `Correct answer: ${String.fromCharCode(65 + q.correctIndex)}`)),
+      field('Question', q.stem, stem),
+      ...q.options.map((o, i) => field(`Option ${String.fromCharCode(65 + i)}`, o, opts[i])),
+      field('Explanation', q.explanation, expl),
+      h('button', { onclick: () => guarded(async () => {
+        await api(`/admin/questions/${q._id}/translations/hi`, { method: 'PATCH', body: { stem: stem.value, options: opts.map((x) => x.value), explanation: expl.value } });
+        toast('Hindi question saved');
+      }) }, 'Save question'));
+  });
+
+  return h('div', { class: 'panel' },
+    h('div', { class: 'row' }, h('h1', { style: 'margin:0' }, 'Hindi'), badge(hindi.article.replace(' ', '_')), h('span', { class: 'muted' }, `Article: ${HINDI_STATE[hindi.article]}`)),
+    h('p', { class: 'muted' }, 'The Hindi is translated from the approved English. Check it side by side: names, numbers, legal terms and that each option means the same as in English. Readers see Hindi only after you publish it.'),
+    hindi.error ? h('p', { class: 'error-text' }, `Last translation failed (${hindi.error.attempts}×): ${hindi.error.message}`) : null,
+    hindi.warnings.length ? h('div', { class: 'panel notice' }, h('strong', {}, 'Automatic checks: '), h('ul', {}, hindi.warnings.map((w) => h('li', {}, w)))) : null,
+    current ? [
+      field('Title', a.title, f.title),
+      field('Summary', a.summary, f.summary),
+      field('Explainer', a.body, f.body),
+      field('Key points (one per line)', (a.keyPoints || []).join('\n'), f.keyPoints),
+      field('Why it matters for UPSC', a.upscRelevance, f.upscRelevance),
+      h('button', { onclick: () => guarded(async () => {
+        await api(`/admin/articles/${a._id}/translations/hi`, { method: 'PATCH', body: {
+          title: f.title.value, summary: f.summary.value, body: f.body.value, upscRelevance: f.upscRelevance.value,
+          keyPoints: f.keyPoints.value.split('\n').map((x) => x.trim()).filter(Boolean),
+        } });
+        toast('Hindi article saved');
+      }) }, 'Save article text'),
+      h('h2', {}, 'Questions'),
+      qBlocks,
+    ] : h('p', {}, hindi.article === 'outdated' ? 'The English was corrected, so the old Hindi is hidden from readers. A new translation is made on the next translate-content run.' : 'Not translated yet. It is translated on the next translate-content run.'),
+    h('div', { class: 'row', style: 'margin-top:12px' },
+      waiting ? h('button', { class: 'primary', onclick: () => guarded(async () => {
+        const r = await api(`/admin/articles/${a._id}/translations/hi/publish`, { method: 'POST' });
+        toast(`Hindi published (${r.published} ${r.published === 1 ? 'part' : 'parts'})${r.pendingQuestions ? `; ${r.pendingQuestions} question(s) still need translating` : ''}`);
+        reload();
+      }) }, 'Publish Hindi') : null,
+      hindi.article !== 'published' || waiting ? h('button', { onclick: () => guarded(async () => {
+        if (waiting && !confirm('Discard the Hindi waiting for review (including your edits) and translate again?')) return;
+        toast('Translating…');
+        const r = await api(`/admin/articles/${a._id}/translations/hi/retranslate`, { method: 'POST' });
+        toast(r.outcome === 'translated' ? 'New Hindi translation ready for review' : r.outcome === 'failed' ? 'Translation failed checks; see the message above' : 'Already up to date');
+        reload();
+      }) }, current ? 'Translate again' : 'Translate now') : null));
+}
+
+async function hindiView() {
+  const status = new URLSearchParams(location.hash.split('?')[1] || '').get('s') || 'in_review';
+  const { items } = await api(`/admin/translations?status=${status}`);
+  const tab = (s, label) => h('a', { href: `#/hindi?s=${s}`, style: s === status ? 'font-weight:700;text-decoration:underline' : '' }, label);
+  return h('div', { class: 'panel' },
+    h('h1', {}, 'Hindi'),
+    h('div', { class: 'row', style: 'margin-bottom:12px' }, tab('in_review', 'Waiting for review'), tab('failed', 'Translation failed'), tab('pending', 'Not yet translated')),
+    items.length ? h('table', {}, h('tbody', {}, items.map((a) => h('tr', {},
+      h('td', {}, h('a', { href: `#/article/${a._id}` }, a.title), a.titleHi ? h('div', { class: 'muted', lang: 'hi' }, a.titleHi) : null, a.error ? h('div', { class: 'error-text' }, a.error) : null),
+      h('td', { class: 'muted' }, fmt(a.publishedAt))))))
+      : h('p', { class: 'muted' }, status === 'in_review' ? 'Nothing waiting for Hindi review.' : status === 'failed' ? 'No failed translations.' : 'Every published article has a Hindi translation.'));
+}
+
 async function pipelineView() {
   const [dash, runs, failed] = await Promise.all([api('/admin/dashboard'), api('/admin/jobs/runs?limit=20'), api('/admin/raw-items?status=failed&limit=20')]);
   const isAdmin = me.role === 'admin';
@@ -283,7 +371,8 @@ async function pipelineView() {
       h('h1', {}, 'Content status'),
       h('p', {}, h('strong', {}, 'Feed items: '), counts(dash.rawItems)),
       h('p', {}, h('strong', {}, 'Articles: '), counts(dash.articles)),
-      h('p', {}, h('strong', {}, 'Questions: '), counts(dash.questions))),
+      h('p', {}, h('strong', {}, 'Questions: '), counts(dash.questions)),
+      h('p', {}, h('strong', {}, 'Hindi: '), `waiting for review: ${dash.hindi.inReview} · failed: ${dash.hindi.failed} · not yet translated: ${dash.hindi.pending} `, h('a', { href: '#/hindi' }, 'open'))),
     h('div', { class: 'panel' },
       h('h1', {}, 'Jobs'),
       h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'Job'), h('th', {}, 'Schedule (IST)'), h('th', {}, 'Last run'), h('th', {}))),
@@ -364,6 +453,7 @@ async function render() {
     else if (route === 'quizzes') view = await quizzesView();
     else if (route === 'pipeline') view = await pipelineView();
     else if (route === 'audit') view = await auditView();
+    else if (route && route.startsWith('hindi')) view = await hindiView();
     else if (route && route.startsWith('users')) view = await usersView();
     else view = await articleListView('in_review', 'Review queue');
     app.replaceChildren(view);

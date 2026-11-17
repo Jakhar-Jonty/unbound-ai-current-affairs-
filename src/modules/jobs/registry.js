@@ -2,6 +2,7 @@
 const config = require('../../config');
 const { ingestFeeds } = require('../pipeline/ingest');
 const { generateContent } = require('../pipeline/generate');
+const { translateContent } = require('../pipeline/translate');
 const { assembleDailyQuiz } = require('../quiz/quiz.service');
 const { Quiz } = require('../quiz/quiz.model');
 const push = require('../notifications/push.service');
@@ -19,6 +20,12 @@ const jobs = {
     schedule: config.pipeline.cron.generate,
     lockTtlMs: 60 * 60 * 1000,
     handler: () => generateContent(),
+  },
+  'translate-content': {
+    name: 'translate-content',
+    schedule: config.pipeline.cron.translate,
+    lockTtlMs: 60 * 60 * 1000,
+    handler: () => translateContent(),
   },
   'daily-quiz': {
     name: 'daily-quiz',

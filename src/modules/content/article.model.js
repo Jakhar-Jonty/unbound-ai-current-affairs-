@@ -36,6 +36,29 @@ const correctionSchema = new mongoose.Schema(
   { _id: false },
 );
 
+/**
+ * Hindi version. Translated by the pipeline from the approved English (version
+ * `sourceVersion`) and published by an editor. Shown to readers only while
+ * published AND sourceVersion matches the article's current version, so a
+ * corrected English article never shows outdated Hindi.
+ */
+const articleTranslationSchema = new mongoose.Schema(
+  {
+    title: String,
+    summary: String,
+    body: String,
+    keyPoints: [String],
+    upscRelevance: String,
+    status: { type: String, enum: ['in_review', 'published'], required: true },
+    sourceVersion: { type: Number, required: true },
+    edited: Boolean,
+    generation: { provider: String, model: String, promptVersion: String, generatedAt: Date },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    publishedAt: Date,
+  },
+  { _id: false },
+);
+
 const articleSchema = new mongoose.Schema(
   {
     slug: { type: String, required: true, unique: true },
@@ -80,6 +103,13 @@ const articleSchema = new mongoose.Schema(
     // Story grouping: all feed items about this event share this key.
     storyKey: { type: mongoose.Schema.Types.ObjectId, index: true },
     mergedInto: { type: mongoose.Schema.Types.ObjectId, ref: 'Article' },
+    translations: {
+      hi: { type: articleTranslationSchema, default: undefined },
+    },
+    // Last translation failure per language, so a bad article isn't retried forever.
+    translationErrors: {
+      hi: { message: String, attempts: Number, version: Number, at: Date },
+    },
   },
   { timestamps: true },
 );
@@ -88,5 +118,7 @@ articleSchema.index({ status: 1, publishedAt: -1 });
 articleSchema.index({ 'tags.subjects': 1, status: 1, publishedAt: -1 });
 articleSchema.index({ 'sources.url': 1 });
 articleSchema.index({ title: 'text', summary: 'text', 'tags.keywords': 'text' });
+
+articleSchema.index({ status: 1, 'translations.hi.status': 1 });
 
 module.exports = { Article: mongoose.model('Article', articleSchema), ARTICLE_STATUSES };
