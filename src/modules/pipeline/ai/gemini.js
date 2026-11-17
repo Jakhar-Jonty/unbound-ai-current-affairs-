@@ -5,7 +5,8 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 /** Google Gemini via the official @google/genai SDK. Reads GEMINI_API_KEY. */
 function createGeminiProvider({ model = DEFAULT_MODEL, client } = {}) {
-  const ai = client || new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  // systemInstruction and responseJsonSchema are only accepted on v1beta; newer SDKs default to v1.
+  const ai = client || new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: 'v1beta' });
 
   return {
     name: 'gemini',
