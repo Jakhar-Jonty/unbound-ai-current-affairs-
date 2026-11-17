@@ -55,4 +55,18 @@ function fakeFetch(routes) {
 const app = createApp();
 const http = () => request(app);
 
-module.exports = { setupDb, teardownDb, clearDb, makeUser, rss, fakeFetch, http };
+/**
+ * Waits until an email matching `predicate` is in the test outbox. Sign-up sends its
+ * verification email in the background, so a fixed delay is flaky on a busy machine.
+ */
+async function waitForMail(predicate, timeoutMs = 3000) {
+  const { outbox } = require('../src/lib/mailer');
+  for (let waited = 0; waited < timeoutMs; waited += 20) {
+    const mail = outbox.find(predicate);
+    if (mail) return mail;
+    await new Promise((res) => { setTimeout(res, 20); });
+  }
+  return undefined;
+}
+
+module.exports = { setupDb, teardownDb, clearDb, makeUser, rss, fakeFetch, http, waitForMail };

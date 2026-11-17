@@ -5,7 +5,7 @@ const { Article } = require('../content/article.model');
 const { Question } = require('../quiz/question.model');
 const { uniqueSlug } = require('../content/content.service');
 const { createProvider } = require('./ai');
-const { PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt, OUTPUT_JSON_SCHEMA, generatedOutput } = require('./prompts');
+const { PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt, OUTPUT_JSON_SCHEMA, withArrayBounds, parseGeneratedOutput } = require('./prompts');
 const { fetchText } = require('./ingest');
 const { extractArticleText } = require('../../lib/text');
 const { mapWithConcurrency } = require('../../lib/pool');
@@ -122,7 +122,30 @@ async function handleExistingStory(items, fetchImpl) {
   return 'attached';
 }
 
-async function processStory(items, { provider, fetchImpl, maxAttempts }) {
+/**
+ * Rate limits and overload (HTTP 429 / 529, from any provider SDK, which all set
+ * err.status) say nothing about the story itself, so they must not use up attempts.
+ */
+function isRateLimit(err) {
+  const status = Number(err?.status ?? err?.statusCode);
+  if (status === 429 || status === 529) return true;
+  return /\b429\b|RESOURCE_EXHAUSTED|rate.?limit|overloaded/i.test(String(err?.message || ''));
+}
+
+/** Puts a story back in the queue and undoes the attempt counted when it was claimed. */
+async function releaseItems(items, lastError) {
+  await RawItem.updateMany(
+    { _id: { $in: items.map((i) => i._id) } },
+    { $set: { status: 'new', ...(lastError ? { lastError } : {}) }, $inc: { attempts: -1 } },
+  );
+}
+
+async function processStory(items, { provider, fetchImpl, maxAttempts, run }) {
+  // Once the provider has rate-limited this run, leave the rest for the next run.
+  if (run.rateLimited) {
+    await releaseItems(items);
+    return 'deferred';
+  }
   try {
     const handled = await handleExistingStory(items, fetchImpl);
     if (handled) return handled;
@@ -133,15 +156,13 @@ async function processStory(items, { provider, fetchImpl, maxAttempts }) {
     const result = await provider.generateJSON({
       system: SYSTEM_PROMPT,
       prompt: buildUserPrompt(promptSources),
-      schema: OUTPUT_JSON_SCHEMA,
+      schema: provider.supportsArrayBounds ? withArrayBounds(OUTPUT_JSON_SCHEMA) : OUTPUT_JSON_SCHEMA,
       schemaName: 'current_affairs_item',
       context: { item: promptSources[0], items: promptSources },
     });
 
-    const parsed = generatedOutput.safeParse(result.data);
-    if (!parsed.success) {
-      throw new Error(`AI output failed validation: ${parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
-    }
+    const parsed = parseGeneratedOutput(result.data);
+    if (!parsed.success) throw new Error(`AI output failed validation: ${parsed.error}`);
     const out = parsed.data;
 
     if (!out.relevant) {
@@ -189,6 +210,11 @@ async function processStory(items, { provider, fetchImpl, maxAttempts }) {
     return 'created';
   } catch (err) {
     const message = String(err.message || err).slice(0, 1000);
+    if (isRateLimit(err)) {
+      run.rateLimited = true;
+      await releaseItems(items, `Rate limited (will retry next run): ${message}`.slice(0, 1000));
+      return 'rate_limited';
+    }
     let failed = false;
     for (const item of items) {
       const isFailed = item.attempts >= maxAttempts;
@@ -213,7 +239,8 @@ async function generateContent({
 } = {}) {
   const recovered = await recoverStale();
   const stories = await claimBatch(limit);
-  const outcomes = await mapWithConcurrency(stories, concurrency, (items) => processStory(items, { provider, fetchImpl, maxAttempts }));
+  const run = { rateLimited: false };
+  const outcomes = await mapWithConcurrency(stories, concurrency, (items) => processStory(items, { provider, fetchImpl, maxAttempts, run }));
   const count = (k) => outcomes.filter((o) => o === k).length;
   return {
     provider: provider.name,
@@ -225,8 +252,11 @@ async function generateContent({
     skipped: count('skipped'),
     retry: count('retry'),
     failed: count('failed'),
+    // Put back in the queue without using an attempt: hit the limit, or not tried after it.
+    rateLimited: count('rate_limited'),
+    deferred: count('deferred'),
     recovered,
   };
 }
 
-module.exports = { generateContent, claimBatch, recoverStale, rankSources };
+module.exports = { generateContent, claimBatch, recoverStale, rankSources, isRateLimit };

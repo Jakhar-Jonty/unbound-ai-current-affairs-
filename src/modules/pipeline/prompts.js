@@ -3,7 +3,7 @@ const { z } = require('zod');
 const { GS_PAPERS, GS_PAPER_KEYS, SUBJECTS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 /** Bump whenever the prompt or schema changes, so content can be traced to the prompt that made it. */
-const PROMPT_VERSION = 'upsc-ca-v2';
+const PROMPT_VERSION = 'upsc-ca-v3';
 
 const SYSTEM_PROMPT = `You are a senior current-affairs editor writing study material for UPSC Civil Services aspirants in India.
 
@@ -53,8 +53,8 @@ const questionJsonSchema = {
   required: ['stem', 'options', 'correctIndex', 'explanation', 'difficulty'],
   properties: {
     stem: { type: 'string' },
-    options: { type: 'array', items: { type: 'string' } },
-    correctIndex: { type: 'integer' },
+    options: { type: 'array', items: { type: 'string' }, description: 'Exactly 4 distinct options, without "A)"-style labels' },
+    correctIndex: { type: 'integer', description: 'Index (0 to 3) of the one correct option' },
     explanation: { type: 'string' },
     difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
   },
@@ -71,15 +71,35 @@ const OUTPUT_JSON_SCHEMA = {
     title: { type: 'string' },
     summary: { type: 'string', description: '60–90 word summary' },
     body: { type: 'string', description: '250–450 word explainer in plain paragraphs' },
-    keyPoints: { type: 'array', items: { type: 'string' } },
+    keyPoints: { type: 'array', items: { type: 'string' }, description: '3 to 6 short points, at most 10' },
     upscRelevance: { type: 'string', description: 'Why this matters for Prelims/Mains, with syllabus links' },
     gsPaper: { type: 'string', enum: GS_PAPER_KEYS },
-    subjects: { type: 'array', items: { type: 'string', enum: SUBJECT_KEYS } },
-    keywords: { type: 'array', items: { type: 'string' } },
+    subjects: { type: 'array', items: { type: 'string', enum: SUBJECT_KEYS }, description: '1 to 3 subjects, most relevant first' },
+    keywords: { type: 'array', items: { type: 'string' }, description: 'At most 15' },
     factsToVerify: { type: 'array', items: { type: 'string' } },
-    questions: { type: 'array', items: questionJsonSchema },
+    questions: { type: 'array', items: questionJsonSchema, description: '3 to 5 questions (none when relevant is false)' },
   },
 };
+
+/**
+ * Array size limits as JSON Schema minItems/maxItems. Not every provider's structured
+ * output accepts them (Claude allows only minItems 0 or 1), so they are added only for
+ * providers that set `supportsArrayBounds`. Zod validation enforces them for everyone.
+ */
+const ARRAY_BOUNDS = {
+  keyPoints: { maxItems: 10 },
+  subjects: { maxItems: 3 },
+  keywords: { maxItems: 15 },
+  factsToVerify: { maxItems: 30 },
+  questions: { maxItems: 6 },
+};
+
+function withArrayBounds(schema) {
+  const out = structuredClone(schema);
+  for (const [key, bounds] of Object.entries(ARRAY_BOUNDS)) Object.assign(out.properties[key], bounds);
+  Object.assign(out.properties.questions.items.properties.options, { minItems: 4, maxItems: 4 });
+  return out;
+}
 
 /** Validation applied to every provider's output, whatever the provider guarantees. */
 const generatedQuestion = z
@@ -110,4 +130,47 @@ const generatedOutput = z.discriminatedUnion('relevant', [
   }),
 ]);
 
-module.exports = { PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt, OUTPUT_JSON_SCHEMA, generatedOutput };
+function formatIssues(error) {
+  return error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+}
+
+/**
+ * Validates provider output after a few safe, meaning-preserving repairs, so one small
+ * slip doesn't throw away a whole article (and an AI call):
+ * - duplicate subjects are removed and the list is cut to 3 (the model lists the most relevant first);
+ * - keyPoints and keywords are cut to their maximum;
+ * - invalid questions are dropped as long as at least one valid question remains.
+ * Options, answer keys and factsToVerify are never changed: a question with the wrong
+ * number of options is dropped, not edited, and too many facts still fails.
+ * Returns { success, data, droppedQuestions } or { success: false, error }.
+ */
+function parseGeneratedOutput(input) {
+  if (!input || typeof input !== 'object' || input.relevant !== true) {
+    const parsed = generatedOutput.safeParse(input);
+    return parsed.success ? { success: true, data: parsed.data, droppedQuestions: 0 } : { success: false, error: formatIssues(parsed.error) };
+  }
+  const data = { ...input };
+  if (Array.isArray(data.subjects)) data.subjects = [...new Set(data.subjects)].slice(0, 3);
+  if (Array.isArray(data.keyPoints)) data.keyPoints = data.keyPoints.slice(0, 10);
+  if (Array.isArray(data.keywords)) data.keywords = data.keywords.slice(0, 15);
+
+  let droppedQuestions = 0;
+  let firstQuestionError;
+  if (Array.isArray(data.questions)) {
+    data.questions = data.questions.filter((q, i) => {
+      const r = generatedQuestion.safeParse(q);
+      if (!r.success) {
+        droppedQuestions += 1;
+        firstQuestionError ??= formatIssues({ issues: r.error.issues.map((x) => ({ ...x, path: ['questions', i, ...x.path] })) });
+      }
+      return r.success;
+    });
+    if (!data.questions.length && firstQuestionError) return { success: false, error: firstQuestionError };
+  }
+  const parsed = generatedOutput.safeParse(data);
+  return parsed.success ? { success: true, data: parsed.data, droppedQuestions } : { success: false, error: formatIssues(parsed.error) };
+}
+
+module.exports = {
+  PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt, OUTPUT_JSON_SCHEMA, withArrayBounds, generatedOutput, parseGeneratedOutput,
+};

@@ -1,7 +1,7 @@
 'use strict';
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { setupDb, teardownDb, clearDb, http, makeUser } = require('./helpers');
+const { setupDb, teardownDb, clearDb, http, makeUser, waitForMail } = require('./helpers');
 const { outbox } = require('../src/lib/mailer');
 const { OneTimeCode } = require('../src/modules/users/codes');
 const { User } = require('../src/modules/users/user.model');
@@ -19,7 +19,7 @@ const codeFrom = (mail) => mail.subject.match(/^(\d{6})/)[1];
 
 async function signup(email = 'reset@example.com', password = 'old-password-1') {
   const r = await http().post('/api/v1/auth/register').send({ email, name: 'Reset User', password });
-  await new Promise((res) => { setTimeout(res, 50); });
+  await waitForMail((m) => m.to === email.toLowerCase());
   outbox.length = 0; // Drop the sign-up verification email.
   return r.body;
 }
