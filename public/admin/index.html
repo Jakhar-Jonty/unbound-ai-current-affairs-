@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unbound Admin</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <strong>Unbound Admin</strong>
+    <nav id="nav" hidden>
+      <a href="#/review">Review queue</a>
+      <a href="#/articles">All content</a>
+      <a href="#/new">Write article</a>
+      <a href="#/quizzes">Quizzes</a>
+      <a href="#/pipeline">Pipeline</a>
+      <a href="#/audit">Audit log</a>
+    </nav>
+    <span id="who"></span>
+  </header>
+  <main id="app"></main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "unbound-ai-current-affairs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-assisted current affairs platform for UPSC aspirants: verified content library, daily quizzes, bookmarks, admin review and an automated content pipeline.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "worker": "node src/worker.js",
+    "dev": "node --watch src/server.js",
+    "seed:admin": "node scripts/create-admin.js",
+    "job": "node scripts/run-job.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
+    "@google/genai": "^3.4.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.4",
+    "fast-xml-parser": "^5.12.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.12.2",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^10.6.0",
+    "openai": "^7.57.0",
+    "pino": "^10.4.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.2"
+  }
+}

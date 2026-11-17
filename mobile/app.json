@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Unbound",
+    "slug": "unbound-current-affairs",
+    "scheme": "unbound",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F5F2EC",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.unbound.currentaffairs"
+    },
+    "android": {
+      "package": "com.unbound.currentaffairs",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F2EC",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#FF7928"
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:4000",
+      "storeUrl": {
+        "ios": "",
+        "android": ""
+      }
+    }
+  }
+}
