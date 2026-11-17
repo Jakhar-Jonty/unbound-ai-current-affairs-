@@ -29,6 +29,11 @@ test('bookmark articles and questions', async () => {
   const ques = list.body.items.find((i) => i.itemType === 'question');
   assert.equal(ques.item.correctIndex, q.correctIndex);
 
+  const status = await http().get(`/api/v1/me/bookmarks/status?itemType=article&ids=${a._id},0123456789abcdef01234567`).set(student.auth);
+  assert.equal(status.status, 200);
+  assert.equal(status.body.bookmarks[String(a._id)], art.id);
+  assert.equal(status.body.bookmarks['0123456789abcdef01234567'], undefined);
+
   const other = await makeUser('user');
   assert.equal((await http().get('/api/v1/me/bookmarks').set(other.auth)).body.total, 0);
   assert.equal((await http().delete(`/api/v1/me/bookmarks/${art.id}`).set(other.auth)).status, 404);

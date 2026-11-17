@@ -35,6 +35,18 @@ router.get('/me/bookmarks', validate(pagination.extend({ type: z.enum(['article'
   res.json({ items: items.map(present), page, limit, total });
 });
 
+// Which of the given items the user has bookmarked: { bookmarks: { [itemId]: bookmarkId } }.
+const statusSchema = z.object({
+  itemType: z.enum(['article', 'question']),
+  ids: z.string().transform((s) => s.split(',').filter(Boolean)).pipe(z.array(objectId).min(1).max(100)),
+});
+
+router.get('/me/bookmarks/status', validate(statusSchema, 'query'), async (req, res) => {
+  const { itemType, ids } = req.valid.query;
+  const found = await Bookmark.find({ user: req.user._id, itemType, item: { $in: ids } }).select('item').lean();
+  res.json({ bookmarks: Object.fromEntries(found.map((b) => [String(b.item), String(b._id)])) });
+});
+
 const createSchema = z.object({
   itemType: z.enum(['article', 'question']),
   itemId: objectId,

@@ -2,7 +2,9 @@
 
 Backend for a current affairs app for UPSC aspirants. An AI pipeline turns news feeds into exam explainers and MCQs. Editors check each item against its sources before it goes live. Every user then reads the same published library, while quiz attempts, bookmarks and progress are stored per user.
 
-This repository holds the first release: the **API**, the **automated content pipeline** and the **admin panel**. The React Native app is the next step and will use the API documented below.
+This repository holds the **API**, the **automated content pipeline**, the **admin panel** and the **mobile app** (`mobile/`, Expo / React Native; see [mobile/README.md](mobile/README.md)).
+
+Brand palette, used in both the app and the admin panel: `#151515` black, `#F5F2EC` ivory, `#777777` grey, `#FF7928` orange.
 
 ## How it works
 
@@ -73,6 +75,7 @@ src/
 public/admin/                Admin panel (plain HTML/JS, served at /admin)
 scripts/                     create-admin, run a job once
 test/                        Integration tests (node:test + real MongoDB)
+mobile/                      React Native app (Expo)
 ```
 
 ## Running locally
@@ -139,6 +142,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/me/attempts` | Your attempt history |
 | GET | `/me/progress` | Accuracy overall and per subject |
 | GET/POST | `/me/bookmarks` | List, or add `{ itemType: article\|question, itemId, note? }` |
+| GET | `/me/bookmarks/status` | `?itemType=article&ids=a,b` → `{ bookmarks: { [itemId]: bookmarkId } }` |
 | DELETE | `/me/bookmarks/:id` | Remove a bookmark |
 | POST | `/me/devices` | Register an Expo push token `{ token, platform, appVersion? }` |
 | DELETE | `/me/devices` | Unregister `{ token }` (call on sign-out) |
@@ -182,7 +186,6 @@ The plan's next step is "background workers + Redis". Jobs already sit behind `r
 
 ## Not in this release
 
-- **React Native app.** Next step; it will use the API above. Push already works with Expo push tokens.
 - **Grouping related stories.** Two outlets covering the same event become two review items unless they share a URL. Editors can reject the duplicate.
 - **Provider batch APIs.** The pipeline processes items in small concurrent batches. Moving overnight runs to a provider's batch API (about 50% cheaper on Claude and OpenAI) is a possible cost optimisation.
 - **Password reset, email verification, social login.**
