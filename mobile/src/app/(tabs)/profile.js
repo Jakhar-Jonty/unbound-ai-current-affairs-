@@ -1,4 +1,6 @@
-import { RefreshControl, View } from 'react-native';
+import { Pressable, RefreshControl, View } from 'react-native';
+import { router } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { useAuth } from '../../lib/auth';
 import { useProgress, useTaxonomy } from '../../lib/queries';
@@ -6,6 +8,19 @@ import { useTheme, spacing } from '../../theme';
 import { subjectLabel } from '../../components/ArticleCard';
 import SignInPrompt from '../../components/SignInPrompt';
 import { Button, Card, Divider, ErrorView, Loading, ProgressBar, Screen, SectionTitle, T } from '../../components/ui';
+
+function AccountRow({ icon, label, onPress, danger }) {
+  const c = useTheme();
+  const color = danger ? c.incorrect : c.text;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, opacity: pressed ? 0.7 : 1 })}>
+      <Ionicons name={icon} size={20} color={color} />
+      <T style={{ flex: 1, color }}>{label}</T>
+      <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+    </Pressable>
+  );
+}
 
 function Stat({ label, value }) {
   return (
@@ -37,6 +52,15 @@ export default function Profile() {
       <SectionTitle>Your progress</SectionTitle>
       {isLoading ? <Loading /> : error ? <ErrorView error={error} onRetry={refetch} /> : (
         <>
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md, backgroundColor: c.inverse, borderColor: c.inverse }}>
+            <Ionicons name="flame" size={32} color={c.accent} />
+            <View style={{ flex: 1 }}>
+              <T variant="title" color={c.onInverse}>{p.streak?.current || 0}-day streak</T>
+              <T variant="small" color={c.onInverse} style={{ opacity: 0.8 }}>
+                {p.streak?.current ? 'Take today’s quiz to keep it going.' : 'Take a quiz today to start a streak.'} Best: {p.streak?.best || 0} {p.streak?.best === 1 ? 'day' : 'days'}.
+              </T>
+            </View>
+          </Card>
           <Card style={{ flexDirection: 'row' }}>
             <Stat label="Quizzes" value={p.quizzesTaken} />
             <Stat label="Questions" value={p.questionsSeen} />
@@ -61,6 +85,12 @@ export default function Profile() {
         </>
       )}
 
+      <SectionTitle>Account</SectionTitle>
+      <Card style={{ paddingVertical: spacing.xs }}>
+        <AccountRow icon="key-outline" label="Change password" onPress={() => router.push('/account/password')} />
+        <View style={{ height: 1, backgroundColor: c.border }} />
+        <AccountRow icon="trash-outline" label="Delete account" danger onPress={() => router.push('/account/delete')} />
+      </Card>
       <Divider />
       <Button title="Sign out" variant="outline" icon="log-out-outline" onPress={signOut} />
       <T variant="caption" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.lg }}>Version {version}</T>

@@ -15,6 +15,7 @@ async function resolveUser(req) {
   }
   const user = await User.findById(payload.sub);
   if (!user || user.disabled) throw unauthorized('Account not found or disabled');
+  if ((payload.tv || 0) !== (user.tokenVersion || 0)) throw unauthorized('Your session has ended. Please sign in again.');
   return user;
 }
 

@@ -105,6 +105,25 @@ async function attemptResult(attempt) {
   };
 }
 
+/**
+ * Daily streak: consecutive days (app timezone) with at least one completed quiz.
+ * The current streak stays alive until the end of the day after the last quiz.
+ */
+function computeStreak(dates, today = localDateString()) {
+  const days = [...new Set(dates)].sort();
+  if (!days.length) return { current: 0, best: 0, lastActiveDate: null };
+  const dayNum = (d) => Math.round(Date.parse(`${d}T00:00:00Z`) / 86400000);
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < days.length; i += 1) {
+    run = dayNum(days[i]) - dayNum(days[i - 1]) === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  const last = days[days.length - 1];
+  const gap = dayNum(today) - dayNum(last);
+  return { current: gap <= 1 ? run : 0, best, lastActiveDate: last };
+}
+
 async function progressFor(userId) {
   const uid = new mongoose.Types.ObjectId(String(userId));
   const [bySubject, overall] = await Promise.all([
@@ -128,7 +147,10 @@ async function progressFor(userId) {
     ]),
   ]);
   const o = overall[0] || { quizzes: 0, score: 0, total: 0 };
+  const recent = await Attempt.find({ user: uid }).sort({ submittedAt: -1 }).limit(400).select('submittedAt').lean();
+  const streak = computeStreak(recent.map((a) => localDateString(a.submittedAt)));
   return {
+    streak,
     quizzesTaken: o.quizzes,
     questionsSeen: o.total,
     correct: o.score,
@@ -198,4 +220,4 @@ async function assembleDailyQuiz({ date = localDateString(), size = config.pipel
   }
 }
 
-module.exports = { toPlayable, loadQuizWithQuestions, submitAttempt, attemptResult, progressFor, assembleDailyQuiz };
+module.exports = { computeStreak, toPlayable, loadQuizWithQuestions, submitAttempt, attemptResult, progressFor, assembleDailyQuiz };

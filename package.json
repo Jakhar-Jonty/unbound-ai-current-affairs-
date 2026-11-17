@@ -29,6 +29,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.12.2",
     "node-cron": "^4.6.0",
+    "nodemailer": "^10.6.0",
     "openai": "^7.57.0",
     "pino": "^10.4.0",
     "zod": "^4.6.7"

@@ -6,6 +6,7 @@ import { spacing } from '../../theme';
 import ListScreen from '../../components/ListScreen';
 import ArticleCard from '../../components/ArticleCard';
 import TodayQuizCard from '../../components/QuizCard';
+import StreakBadge from '../../components/StreakBadge';
 import { Empty, ErrorView, SectionTitle, T } from '../../components/ui';
 
 export default function Today() {
@@ -19,7 +20,9 @@ export default function Today() {
       header={
         <View>
           <T variant="caption" color="textSecondary">{formatLongDate().toUpperCase()}</T>
-          <T variant="display" style={{ marginTop: spacing.xs, marginBottom: spacing.lg }}>{firstName ? `Hello, ${firstName}` : 'Today'}</T>
+          <T variant="display" style={{ marginTop: spacing.xs, marginBottom: spacing.md }}>{firstName ? `Hello, ${firstName}` : 'Today'}</T>
+          {user ? <View style={{ marginBottom: spacing.md }}><StreakBadge /></View> : null}
+          {!user ? <View style={{ height: spacing.sm }} /> : null}
           <TodayQuizCard />
           <SectionTitle>Latest current affairs</SectionTitle>
           {articles.error ? <ErrorView error={articles.error} onRetry={articles.refetch} /> : null}

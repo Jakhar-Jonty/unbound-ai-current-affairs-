@@ -50,6 +50,13 @@ export function AuthProvider({ children }) {
     signIn: async (email, password) => startSession(await api('/auth/login', { method: 'POST', body: { email, password } })),
     register: async (name, email, password) => startSession(await api('/auth/register', { method: 'POST', body: { name, email, password } })),
     signOut: async () => { await unregisterPush(); await clear(); },
+    // For flows that return a fresh session (password reset / change).
+    applySession: startSession,
+    deleteAccount: async (password) => {
+      await unregisterPush();
+      await api('/auth/me', { method: 'DELETE', body: { password } });
+      await clear();
+    },
   }), [state, startSession, clear]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

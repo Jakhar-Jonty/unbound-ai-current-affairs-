@@ -1,24 +1,10 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../lib/auth';
-import { useTheme, spacing, radius, type } from '../theme';
+import { spacing } from '../theme';
+import Field from './Field';
 import { Button, Screen, T } from './ui';
-
-function Field({ label, ...props }) {
-  const c = useTheme();
-  return (
-    <View style={{ marginTop: spacing.lg }}>
-      <T variant="caption" color="textSecondary" style={{ marginBottom: spacing.xs }}>{label.toUpperCase()}</T>
-      <TextInput
-        accessibilityLabel={label}
-        placeholderTextColor={c.textMuted}
-        style={[type.body, s.input, { color: c.text, borderColor: c.borderStrong }]}
-        {...props}
-      />
-    </View>
-  );
-}
 
 export default function AuthForm({ mode }) {
   const { signIn, register } = useAuth();
@@ -58,6 +44,11 @@ export default function AuthForm({ mode }) {
         {isRegister ? <Field label="Name" value={name} onChangeText={setName} autoComplete="name" textContentType="name" /> : null}
         <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
         <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete={isRegister ? 'new-password' : 'current-password'} textContentType={isRegister ? 'newPassword' : 'password'} onSubmitEditing={submit} />
+        {!isRegister ? (
+          <T variant="small" accessibilityRole="link" onPress={() => router.push(email ? `/forgot?email=${encodeURIComponent(email.trim())}` : '/forgot')} style={{ marginTop: spacing.md, alignSelf: 'flex-end', textDecorationLine: 'underline' }}>
+            Forgot password?
+          </T>
+        ) : null}
         {error ? <T variant="small" color="incorrect" style={{ marginTop: spacing.md }} accessibilityLiveRegion="polite">{error}</T> : null}
         <Button title={isRegister ? 'Create account' : 'Sign in'} onPress={submit} loading={busy} disabled={!email || !password || (isRegister && !name)} style={{ marginTop: spacing.xl }} />
         <Button
@@ -70,7 +61,3 @@ export default function AuthForm({ mode }) {
     </KeyboardAvoidingView>
   );
 }
-
-const s = StyleSheet.create({
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md, minHeight: 50 },
-});

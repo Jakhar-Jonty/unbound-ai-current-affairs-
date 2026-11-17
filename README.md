@@ -131,6 +131,10 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/auth/register` | `{ email, name, password }` → `{ user, token }` |
 | POST | `/auth/login` | `{ email, password }` → `{ user, token }` |
 | GET | `/auth/me` | Current user |
+| POST | `/auth/password/forgot` | `{ email }` → always 202; emails a 6-digit code (15 min, single use, 5 tries) |
+| POST | `/auth/password/reset` | `{ email, code, password }` → `{ user, token }`; signs out other sessions |
+| POST | `/auth/password/change` | `{ currentPassword, newPassword }` → `{ user, token }`; signs out other sessions |
+| DELETE | `/auth/me` | `{ password }` permanently deletes the account and personal data |
 | GET | `/taxonomy` | GS papers and subjects |
 | GET | `/articles` | Published articles; filters `subject`, `gsPaper`, `q` (text search), `from`, `to` |
 | GET | `/articles/:idOrSlug` | Article detail with sources, corrections and any retraction notice |
@@ -140,7 +144,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/quizzes/:id/attempts` | `{ answers: [{ questionId, selectedIndex \| null, timeMs? }], durationMs? }` → result with explanations. One attempt per quiz |
 | GET | `/attempts/:id` | Your result, with explanations and any corrections made since |
 | GET | `/me/attempts` | Your attempt history |
-| GET | `/me/progress` | Accuracy overall and per subject |
+| GET | `/me/progress` | Accuracy overall and per subject, plus daily streak (current, best) |
 | GET/POST | `/me/bookmarks` | List, or add `{ itemType: article\|question, itemId, note? }` |
 | GET | `/me/bookmarks/status` | `?itemType=article&ids=a,b` → `{ bookmarks: { [itemId]: bookmarkId } }` |
 | DELETE | `/me/bookmarks/:id` | Remove a bookmark |
@@ -175,7 +179,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 ## Deploying to a single Linux VPS
 
 1. **MongoDB.** MongoDB Atlas is the simplest choice: it handles backups and failover. If you self-host, enable auth, bind to `127.0.0.1` and **never expose port 27017**. Set up daily off-site backups (`mongodump --gzip --archive` to object storage) and **test a restore**.
-2. **App:** `npm ci --omit=dev`, fill in `.env` (a strong `JWT_SECRET`, an AI key), then `npm run seed:admin`.
+2. **App:** `npm ci --omit=dev`, fill in `.env` (a strong `JWT_SECRET`, an AI key, `SMTP_URL` for password-reset emails), then `npm run seed:admin`.
 3. **Processes:** `pm2 start ecosystem.config.js && pm2 save && pm2 startup`. This runs `ca-api` and `ca-worker` separately.
 4. **nginx** in front with TLS (Let's Encrypt), proxying to `127.0.0.1:4000`. Published-content endpoints send `Cache-Control: public`, so a CDN or nginx cache can serve most reads.
 5. **Monitoring:** an uptime check on `/health`, and an alert when a job run fails (they show in the admin panel's Pipeline tab).
@@ -188,5 +192,5 @@ The plan's next step is "background workers + Redis". Jobs already sit behind `r
 
 - **Grouping related stories.** Two outlets covering the same event become two review items unless they share a URL. Editors can reject the duplicate.
 - **Provider batch APIs.** The pipeline processes items in small concurrent batches. Moving overnight runs to a provider's batch API (about 50% cheaper on Claude and OpenAI) is a possible cost optimisation.
-- **Password reset, email verification, social login.**
+- **Email verification and social login.**
 - From the later releases in the plan: AI tutor, audio briefings, leaderboards and study plans. Per-question, per-subject attempt data is already being recorded, so study plans and leaderboards can use history from day one.

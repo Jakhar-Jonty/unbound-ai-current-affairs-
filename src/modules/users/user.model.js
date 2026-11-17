@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true, select: false },
     role: { type: String, enum: ROLES, default: 'user', index: true },
     disabled: { type: Boolean, default: false },
+    // Bumped on password change/reset so tokens issued earlier stop working.
+    tokenVersion: { type: Number, default: 0 },
     lastLoginAt: Date,
   },
   { timestamps: true },

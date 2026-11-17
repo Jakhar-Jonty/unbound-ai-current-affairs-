@@ -52,6 +52,11 @@ const config = {
       dailyQuiz: process.env.CRON_DAILY_QUIZ || '0 7 * * *',
     },
   },
+  mail: {
+    // Any SMTP provider, e.g. smtps://user:pass@smtp.example.com:465
+    smtpUrl: process.env.SMTP_URL || '',
+    from: process.env.MAIL_FROM || 'Unbound <no-reply@example.com>',
+  },
   push: {
     enabled: bool('PUSH_ENABLED', false),
     expoAccessToken: process.env.EXPO_ACCESS_TOKEN || '',

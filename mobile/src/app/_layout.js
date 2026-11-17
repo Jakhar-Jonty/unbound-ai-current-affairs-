@@ -77,6 +77,8 @@ function RootStack() {
           <Stack.Screen name="article/[id]" options={{ title: '' }} />
           <Stack.Screen name="quiz/[id]" options={{ title: 'Quiz', gestureEnabled: false }} />
           <Stack.Screen name="result/[id]" options={{ title: 'Your result' }} />
+          <Stack.Screen name="account/password" options={{ title: 'Change password' }} />
+          <Stack.Screen name="account/delete" options={{ title: 'Delete account' }} />
         </Stack>
       </VersionGate>
     </View>
