@@ -5,6 +5,7 @@ import { getItem, setItem, removeItem } from './storage';
 import { registerForPush, unregisterPush } from './push';
 import { clearOffline, setOfflineAllowed } from './offline';
 import { clearReading } from './reading';
+import { claimGuestData } from './guest';
 
 const TOKEN_KEY = 'authToken';
 const USER_KEY = 'authUser'; // Last known profile, so the app knows who's signed in when it starts offline.
@@ -68,6 +69,10 @@ export function AuthProvider({ children }) {
     queryClient.removeQueries({ queryKey: ['me'] });
     setState({ loading: false, user });
     registerForPush();
+    // Move anything done as a guest on this device into the account.
+    claimGuestData().then((moved) => {
+      if (moved.quizzes || moved.saves) queryClient.invalidateQueries();
+    }).catch(() => {});
   }, [queryClient]);
 
   // Offline downloads follow premium status (everyone has it while premium is switched off).

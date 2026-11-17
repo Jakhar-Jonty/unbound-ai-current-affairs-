@@ -69,7 +69,7 @@ test('practice: questions by subject, instant feedback, progress and streak', as
   const student = await makeUser();
   await publishedArticles(3, editor.user._id); // 6 questions tagged governance + polity
 
-  assert.equal((await http().get('/api/v1/practice/questions?subject=polity')).status, 401);
+  assert.equal((await http().get('/api/v1/practice/questions?subject=polity')).status, 200, 'guests can practise');
   const subjects = await http().get('/api/v1/practice/subjects').set(student.auth);
   assert.equal(subjects.body.subjects.polity, 6);
 

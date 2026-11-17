@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { useAuth } from './auth';
+import { getGuestQuiz, isGuestSaved, listGuestSaves, toggleGuestSave } from './guest';
 import { cacheArticle, canUseOffline, getCachedArticle, getBookmarksSnapshot, saveBookmarksSnapshot, syncPinned } from './offline';
 
 const isOffline = (err) => err?.status === 0;
@@ -110,14 +111,14 @@ export const useLeaderboard = () => {
   return useQuery({ queryKey: ['leaderboard', user?.id], queryFn: ({ signal }) => api('/leaderboard/weekly', { signal }), staleTime: 30 * 1000 });
 };
 
-export const usePracticeSubjects = () => useMeQuery(['practice-subjects'], '/practice/subjects', { staleTime: 5 * 60 * 1000 });
+export const usePracticeSubjects = () => useQuery({ queryKey: ['practice-subjects'], queryFn: () => api('/practice/subjects'), staleTime: 5 * 60 * 1000 });
 
 export function usePracticeSet(subject) {
   const { user } = useAuth();
   return useQuery({
     queryKey: ['me', user?.id, 'practice', subject],
     queryFn: ({ signal }) => api(`/practice/questions?subject=${subject}&count=10`, { signal }),
-    enabled: !!user && !!subject,
+    enabled: !!subject,
     staleTime: Infinity,
     gcTime: 0,
   });
@@ -135,16 +136,26 @@ export function useSubmitAttempt(quizId) {
 }
 
 /** Bookmark state for one item plus a toggle. */
-export function useBookmarkToggle(itemType, itemId) {
+/**
+ * Bookmark state for one item plus a toggle. Signed in: saved on the server.
+ * Guest: saved on this device (moved to the account at sign-in). `item` is a
+ * snapshot shown in the guest's Saved tab.
+ */
+export function useBookmarkToggle(itemType, itemId, item) {
   const qc = useQueryClient();
   const { user } = useAuth();
+  const guest = !user?.id;
+  const statusKey = guest ? ['guest-save', itemType, itemId] : ['me', user?.id, 'bookmark-status', itemType, itemId];
   const status = useQuery({
-    queryKey: ['me', user?.id, 'bookmark-status', itemType, itemId],
-    queryFn: () => api(`/me/bookmarks/status?itemType=${itemType}&ids=${itemId}`).then((r) => r.bookmarks[itemId] || null),
-    enabled: !!user && !user.offline && !!itemId,
+    queryKey: statusKey,
+    queryFn: () => (guest
+      ? isGuestSaved(itemType, itemId)
+      : api(`/me/bookmarks/status?itemType=${itemType}&ids=${itemId}`).then((r) => r.bookmarks[itemId] || null)),
+    enabled: !!itemId && !user?.offline,
   });
   const toggle = useMutation({
     mutationFn: async () => {
+      if (guest) return toggleGuestSave(itemType, itemId, item);
       if (status.data) {
         await api(`/me/bookmarks/${status.data}`, { method: 'DELETE' });
         return null;
@@ -152,9 +163,10 @@ export function useBookmarkToggle(itemType, itemId) {
       const r = await api('/me/bookmarks', { method: 'POST', body: { itemType, itemId } });
       return r.bookmark.id;
     },
-    onSuccess: (bookmarkId) => {
-      qc.setQueryData(['me', user?.id, 'bookmark-status', itemType, itemId], bookmarkId);
-      if (itemType === 'article' && bookmarkId && canUseOffline()) {
+    onSuccess: (saved) => {
+      qc.setQueryData(statusKey, saved);
+      if (guest) { qc.invalidateQueries({ queryKey: ['guest-saves'] }); return; }
+      if (itemType === 'article' && saved && canUseOffline()) {
         const article = qc.getQueryData(['article', itemId]);
         if (article) cacheArticle(article, { pinned: true });
       }
@@ -163,6 +175,9 @@ export function useBookmarkToggle(itemType, itemId) {
   });
   return { bookmarked: !!status.data, toggle: () => toggle.mutate(), busy: toggle.isPending, error: toggle.error };
 }
+
+export const useGuestSaves = () => useQuery({ queryKey: ['guest-saves'], queryFn: listGuestSaves });
+export const useGuestQuiz = (quizId) => useQuery({ queryKey: ['guest-quiz', quizId], queryFn: () => getGuestQuiz(quizId), enabled: !!quizId });
 
 export const useBillingPlans = () => useQuery({ queryKey: ['billing-plans'], queryFn: () => api('/billing/plans'), staleTime: 10 * 60 * 1000 });
 export const useBillingStatus = () => useMeQuery(['billing-status'], '/billing/status');

@@ -61,6 +61,21 @@ const attemptSchema = z.object({
   durationMs: z.number().int().min(0).max(24 * 3_600_000).optional(),
 });
 
+// Guests can try the quiz: graded but not saved. Rate-limited per IP.
+const guestLimiter = require('express-rate-limit').rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: require('../../config').isTest ? 1000 : 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+});
+
+router.post('/quizzes/:id/check', guestLimiter, validate(attemptSchema), async (req, res) => {
+  objectId.parse(req.params.id);
+  const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();
+  if (quiz && isArchive(quiz.publishedAt)) throw premiumRequired('archive');
+  res.json({ result: await svc.checkAnswers({ quizId: req.params.id, answers: req.valid.body.answers }) });
+});
+
 router.post('/quizzes/:id/attempts', requireAuth, validate(attemptSchema), async (req, res) => {
   objectId.parse(req.params.id);
   const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();

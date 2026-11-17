@@ -23,7 +23,7 @@ React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs 
 - **Motion:** buttons and options respond to touch, practice answers pulse (right) or shake (wrong), and questions and results slide in. All animation is skipped when the phone’s “reduce motion” setting is on
 - **Polish:** first-launch intro, loading placeholders, haptic feedback, adjustable article text size (Aa), share
 
-People can browse without an account. Taking quizzes, bookmarks and progress need sign-in.
+**Without an account** people can read everything, take the daily quiz (graded, kept on the device), practise by subject (free daily allowance), save up to 20 items on the device, use the For you feed and see the leaderboard. When they sign up or sign in, today's and yesterday's quiz results are submitted to the account (starting the streak) and device saves move to the account. Progress, Insights, the streak and leaderboard entry, and Premium need an account.
 
 ## Brand colours
 

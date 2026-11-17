@@ -3,10 +3,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../../lib/auth';
-import { useQuiz, useSubmitAttempt } from '../../lib/queries';
+import { useGuestQuiz, useQuiz, useSubmitAttempt } from '../../lib/queries';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '../../lib/api';
+import { saveGuestQuiz } from '../../lib/guest';
 import { optionLetter } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
-import SignInPrompt from '../../components/SignInPrompt';
 import { PremiumGate, isPremiumError } from '../../components/Premium';
 import PressableScale from '../../components/PressableScale';
 import FadeIn from '../../components/FadeIn';
@@ -41,9 +43,22 @@ function Timer({ endsAt, onExpire }) {
 export default function QuizScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams();
-  const { signedIn } = useAuth();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const guest = !user?.id;
   const { data, isLoading, error, refetch } = useQuiz(id);
-  const submit = useSubmitAttempt(id);
+  const { data: guestDone } = useGuestQuiz(guest ? id : null);
+  const saveAttempt = useSubmitAttempt(id);
+  // Guests: graded by the server but kept on the device until they sign up.
+  const guestCheck = useMutation({
+    mutationFn: async (body) => {
+      const { result } = await api(`/quizzes/${id}/check`, { method: 'POST', body });
+      await saveGuestQuiz(id, { answers: body.answers, durationMs: body.durationMs, result });
+      qc.invalidateQueries({ queryKey: ['guest-quiz', id] });
+      return { result };
+    },
+  });
+  const submit = guest ? guestCheck : saveAttempt;
   const [phase, setPhase] = useState('intro'); // intro | playing | review
   const [endsAt, setEndsAt] = useState(null); // set when the exam timer is on
   const [index, setIndex] = useState(0);
@@ -76,14 +91,20 @@ export default function QuizScreen() {
         answers: questions.map((qq) => ({ questionId: qq.id, selectedIndex: answers[qq.id] ?? null, timeMs: Math.round(times.current[qq.id] || 0) })),
         durationMs: Date.now() - startedAt.current,
       },
-      { onSuccess: (r) => router.replace(`/result/${r.result.id}?fresh=1`) },
+      { onSuccess: (r) => router.replace(guest ? `/result/guest?quiz=${id}&fresh=1` : `/result/${r.result.id}?fresh=1`) },
     );
-  }, [submit, questions, answers]);
+  }, [submit, questions, answers, guest, id]);
 
-  if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="checkbox-outline" title="Sign in to take the quiz" message="Your score and progress are saved to your account." /></Screen>;
   if (isLoading) return <Loading />;
   if (isPremiumError(error)) return <Screen edges={[]}><PremiumGate title="From the archive" message={error.message} /></Screen>;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
+  if (guest && guestDone) {
+    return (
+      <Screen edges={[]}>
+        <Empty icon="checkmark-done-outline" title={`You scored ${guestDone.result.score}/${guestDone.result.total}`} message="You took this quiz on this device. Create a free account to save the score and start your streak." action={<Button title="See your answers" onPress={() => router.replace(`/result/guest?quiz=${id}`)} />} />
+      </Screen>
+    );
+  }
   if (data.myAttempt) {
     return (
       <Screen edges={[]}>
@@ -111,6 +132,11 @@ export default function QuizScreen() {
           <T variant="caption" color="textSecondary">{(data.quiz.title || '').toUpperCase()}</T>
           <T variant="display" style={{ marginTop: spacing.xs }}>{questions.length} questions</T>
           <T color="textSecondary" style={{ marginTop: spacing.sm }}>Exam-style questions from recent news. You’ll see the answers and explanations after you submit.</T>
+          {guest ? (
+            <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm }}>
+              You’re not signed in: your result stays on this device, and is saved to your account if you sign up afterwards.
+            </T>
+          ) : null}
           <Card style={{ marginTop: spacing.xl }}>
             <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
               <Ionicons name="timer-outline" size={24} color={c.accent} />

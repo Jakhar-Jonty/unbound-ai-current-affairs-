@@ -31,7 +31,8 @@ async function loadQuizWithQuestions(quizId, { includeUnpublished = false } = {}
   return { quiz, questions: ordered };
 }
 
-async function submitAttempt({ userId, quizId, answers, durationMs }) {
+/** Grades answers against the quiz's current questions. Unanswered questions count as incorrect. */
+async function gradeAnswers(quizId, answers) {
   const { quiz, questions } = await loadQuizWithQuestions(quizId);
   if (!questions.length) throw badRequest('This quiz has no questions');
 
@@ -60,7 +61,11 @@ async function submitAttempt({ userId, quizId, answers, durationMs }) {
       gsPaper: q.tags?.gsPaper,
     };
   });
+  return { quiz, questions, graded };
+}
 
+async function submitAttempt({ userId, quizId, answers, durationMs }) {
+  const { quiz, graded } = await gradeAnswers(quizId, answers);
   try {
     const attempt = await Attempt.create({
       user: userId,
@@ -101,6 +106,32 @@ async function attemptResult(attempt) {
         updatedSinceAttempt: q ? q.version !== a.questionVersion : false,
         currentCorrectIndex: q && q.version !== a.questionVersion ? q.correctIndex : undefined,
         retired: q ? q.status === 'retired' : true,
+      };
+    }),
+  };
+}
+
+/**
+ * Grades a guest's answers without saving anything: same result shape as a saved
+ * attempt, with `id: null` and `saved: false`. The app keeps it on the device and
+ * submits it as a real attempt if the guest signs up.
+ */
+async function checkAnswers({ quizId, answers }) {
+  const { quiz, questions, graded } = await gradeAnswers(quizId, answers);
+  const byId = new Map(questions.map((q) => [String(q._id), q]));
+  return {
+    id: null,
+    saved: false,
+    quiz: quiz._id,
+    score: graded.filter((g) => g.isCorrect).length,
+    total: graded.length,
+    submittedAt: new Date(),
+    answers: graded.map((g) => {
+      const q = byId.get(String(g.question));
+      return {
+        questionId: g.question, stem: q.stem, options: q.options, selectedIndex: g.selectedIndex,
+        correctIndex: g.correctIndex, isCorrect: g.isCorrect, explanation: q.explanation, article: q.article,
+        updatedSinceAttempt: false, retired: false,
       };
     }),
   };
@@ -251,4 +282,4 @@ async function assembleDailyQuiz({ date = localDateString(), size = config.pipel
   }
 }
 
-module.exports = { computeStreak, toPlayable, loadQuizWithQuestions, submitAttempt, attemptResult, progressFor, assembleDailyQuiz };
+module.exports = { checkAnswers, computeStreak, toPlayable, loadQuizWithQuestions, submitAttempt, attemptResult, progressFor, assembleDailyQuiz };

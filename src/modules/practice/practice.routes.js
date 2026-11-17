@@ -3,7 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { validate, objectId, z } = require('../../lib/validate');
 const { notFound, badRequest } = require('../../lib/errors');
-const { requireAuth } = require('../users/auth.middleware');
+const { requireAuth, optionalAuth } = require('../users/auth.middleware');
+const { rateLimit } = require('express-rate-limit');
 const { Question } = require('../quiz/question.model');
 const { Attempt } = require('../quiz/attempt.model');
 const { toPlayable } = require('../quiz/quiz.service');
@@ -13,15 +14,30 @@ const config = require('../../config');
 const { isPremium, premiumRequired } = require('../billing/entitlements');
 const { dayStart } = require('../../lib/dates');
 
-/** Free practice answers left today (IST), or null for premium users. */
+/** Free practice answers left today (IST), or null for premium users. Guests: see guestLimit. */
 async function remainingToday(user) {
+  if (!user) return null;
   if (isPremium(user)) return null;
   const used = await PracticeAnswer.countDocuments({ user: user._id, answeredAt: { $gte: dayStart() } });
   return Math.max(0, config.premium.freePracticePerDay - used);
 }
 
 const router = express.Router();
-router.use('/practice', requireAuth);
+// Questions and answer checks work without an account; stats need one.
+router.use('/practice', optionalAuth);
+
+/**
+ * Guests get the free daily allowance per IP (nothing is stored for them). While
+ * premium is switched off they get a generous cap that only stops abuse.
+ */
+const guestLimit = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: () => (config.premium.enabled ? config.premium.freePracticePerDay : 300),
+  skip: (req) => !!req.user,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  handler: (_req, _res, next) => next(premiumRequired('practice')),
+});
 
 // Number of practice questions available per subject.
 router.get('/practice/subjects', async (_req, res) => {
@@ -42,13 +58,13 @@ router.get('/practice/questions', validate(z.object({
   count: z.coerce.number().int().min(1).max(20).default(10),
 }), 'query'), async (req, res) => {
   const { subject, count } = req.valid.query;
-  const uid = req.user._id;
+  const uid = req.user?._id;
   const remaining = await remainingToday(req.user);
   if (remaining === 0) throw premiumRequired('practice');
-  const [quizCorrect, practiceCorrect] = await Promise.all([
+  const [quizCorrect, practiceCorrect] = uid ? await Promise.all([
     Attempt.aggregate([{ $match: { user: uid } }, { $unwind: '$answers' }, { $match: { 'answers.isCorrect': true } }, { $group: { _id: '$answers.question' } }]),
     PracticeAnswer.distinct('question', { user: uid, isCorrect: true }),
-  ]);
+  ]) : [[], []];
   const mastered = [...quizCorrect.map((r) => r._id), ...practiceCorrect];
   const base = { status: 'published', 'tags.subjects': subject };
   const fresh = await Question.aggregate([{ $match: { ...base, _id: { $nin: mastered } } }, { $sample: { size: count } }]);
@@ -61,7 +77,7 @@ router.get('/practice/questions', validate(z.object({
 });
 
 // Checks one answer and returns the explanation straight away.
-router.post('/practice/answers', validate(z.object({ questionId: objectId, selectedIndex: z.number().int().min(0) })), async (req, res) => {
+router.post('/practice/answers', guestLimit, validate(z.object({ questionId: objectId, selectedIndex: z.number().int().min(0) })), async (req, res) => {
   const { questionId, selectedIndex } = req.valid.body;
   const remaining = await remainingToday(req.user);
   if (remaining === 0) throw premiumRequired('practice');
@@ -69,6 +85,9 @@ router.post('/practice/answers', validate(z.object({ questionId: objectId, selec
   if (!q) throw notFound('Question not found');
   if (selectedIndex >= q.options.length) throw badRequest('Invalid option');
   const isCorrect = selectedIndex === q.correctIndex;
+  if (!req.user) {
+    return res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation: q.explanation, article: q.article, remainingToday: null, saved: false });
+  }
   await PracticeAnswer.create({
     user: req.user._id, question: q._id, questionVersion: q.version, selectedIndex, isCorrect,
     subjects: q.tags?.subjects || [], gsPaper: q.tags?.gsPaper,
@@ -76,7 +95,7 @@ router.post('/practice/answers', validate(z.object({ questionId: objectId, selec
   res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation: q.explanation, article: q.article, remainingToday: remaining === null ? null : remaining - 1 });
 });
 
-router.get('/practice/stats', async (req, res) => {
+router.get('/practice/stats', requireAuth, async (req, res) => {
   const rows = await PracticeAnswer.aggregate([
     { $match: { user: new mongoose.Types.ObjectId(String(req.user._id)) } },
     { $group: { _id: null, answered: { $sum: 1 }, correct: { $sum: { $cond: ['$isCorrect', 1, 0] } } } },

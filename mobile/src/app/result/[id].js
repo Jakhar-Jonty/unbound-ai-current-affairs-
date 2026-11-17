@@ -1,7 +1,8 @@
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useAttempt } from '../../lib/queries';
+import { useAttempt, useGuestQuiz } from '../../lib/queries';
+import { useAuth } from '../../lib/auth';
 import { optionLetter } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
 import BookmarkButton from '../../components/BookmarkButton';
@@ -30,10 +31,15 @@ function OptionRow({ text, i, a }) {
 
 export default function ResultScreen() {
   const c = useTheme();
-  const { id, fresh } = useLocalSearchParams();
-  const { data, isLoading, error, refetch } = useAttempt(id);
+  const { id, fresh, quiz: guestQuizId } = useLocalSearchParams();
+  const { user } = useAuth();
+  const isGuestResult = id === 'guest';
+  const saved = useAttempt(isGuestResult ? null : id);
+  const local = useGuestQuiz(isGuestResult ? guestQuizId : null);
+  const { data, isLoading, error, refetch } = isGuestResult ? { ...local, data: local.data ? { result: local.data.result } : null } : saved;
   if (isLoading) return <Loading />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
+  if (!data) return <ErrorView error={{ message: 'This result is no longer on this device.' }} />;
   const r = data.result;
   const pct = r.total ? Math.round((r.score / r.total) * 100) : 0;
   const message = pct >= 80 ? 'Excellent work.' : pct >= 50 ? 'Good effort. Review the ones you missed.' : 'Keep going. The explanations below will help.';
@@ -45,7 +51,20 @@ export default function ResultScreen() {
         <ScoreRing score={r.score} total={r.total} />
         <T color={c.onInverse} style={{ marginTop: spacing.md, textAlign: 'center' }}>{message}</T>
       </Card>
-      {fresh ? <StreakCelebration /> : null}
+      {fresh && !isGuestResult ? <StreakCelebration /> : null}
+      {isGuestResult && !user?.id ? (
+        <Card style={{ marginTop: spacing.md, borderColor: c.accent }}>
+          <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
+            <Ionicons name="flame-outline" size={28} color={c.accent} />
+            <View style={{ flex: 1 }}>
+              <T variant="heading">Save this score</T>
+              <T variant="small" color="textSecondary">Create a free account to keep this result, start your daily streak and join the leaderboard.</T>
+            </View>
+          </View>
+          <Button title="Create a free account" onPress={() => router.push('/register')} style={{ marginTop: spacing.md }} />
+          <Button title="I already have an account" variant="ghost" onPress={() => router.push('/login')} />
+        </Card>
+      ) : null}
 
       {r.answers.map((a, n) => (
         <FadeIn key={a.questionId} from={0} duration={300 + n * 60}>
@@ -59,7 +78,7 @@ export default function ResultScreen() {
             <T variant="caption" color="textSecondary" style={{ flex: 1 }}>
               QUESTION {n + 1} · {a.isCorrect ? 'CORRECT' : a.selectedIndex === null ? 'NOT ANSWERED' : 'INCORRECT'}
             </T>
-            {!a.retired ? <BookmarkButton itemType="question" itemId={a.questionId} size={20} /> : null}
+            {!a.retired ? <BookmarkButton itemType="question" itemId={a.questionId} size={20} item={{ id: a.questionId, stem: a.stem, options: a.options, correctIndex: a.correctIndex, explanation: a.explanation, article: a.article }} /> : null}
           </View>
           <T variant="heading">{a.stem}</T>
           {(a.options || []).map((o, i) => <OptionRow key={i} text={o} i={i} a={a} />)}
