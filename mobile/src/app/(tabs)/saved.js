@@ -3,11 +3,11 @@ import { RefreshControl, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../../lib/auth';
-import { useBillingPlans, useBookmarks } from '../../lib/queries';
+import { useBillingPlans, useBookmarks, useGuestSaves } from '../../lib/queries';
+import { GUEST_SAVE_LIMIT } from '../../lib/guest';
 import { optionLetter } from '../../lib/format';
 import { useTheme, spacing } from '../../theme';
 import ArticleCard from '../../components/ArticleCard';
-import SignInPrompt from '../../components/SignInPrompt';
 import { Button, Card, Empty, ErrorView, Loading, OfflineNote, Screen, Tag, T } from '../../components/ui';
 
 function SavedQuestion({ item }) {
@@ -37,9 +37,27 @@ export default function Saved() {
   const { data: plans } = useBillingPlans();
   const limits = plans?.free;
   const { data, isLoading, error, refetch, isRefetching } = useBookmarks();
+  const guestSaves = useGuestSaves();
 
+  // Guests: items saved on this device, moved to the account at sign-in.
   if (!signedIn) {
-    return <Screen><T variant="display">Saved</T><SignInPrompt icon="bookmark-outline" title="Save articles and questions" message="Sign in to bookmark items for revision." /></Screen>;
+    const items = guestSaves.data || [];
+    return (
+      <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={guestSaves.isRefetching} onRefresh={guestSaves.refetch} />}>
+        <T variant="display" style={{ marginBottom: spacing.xs }}>Saved</T>
+        <T variant="small" color="textSecondary" style={{ marginBottom: spacing.lg }}>
+          Saved on this device ({items.length} of {GUEST_SAVE_LIMIT}). Sign in to keep them in your account and on your other devices.
+        </T>
+        {!items.length ? (
+          <Empty icon="bookmark-outline" title="Nothing saved yet" message="Tap the bookmark on any article or quiz question to save it for revision. No account needed." action={<Button title="Browse articles" variant="outline" onPress={() => router.push('/explore')} />} />
+        ) : items.map((b) => {
+          if (b.itemType === 'article' && b.item) return <ArticleCard key={`a-${b.itemId}`} article={b.item} />;
+          if (b.itemType === 'question' && b.item) return <SavedQuestion key={`q-${b.itemId}`} item={b} />;
+          return null;
+        })}
+        {items.length ? <Button title="Sign in to keep them" variant="outline" icon="log-in-outline" onPress={() => router.push('/login')} style={{ marginTop: spacing.lg }} /> : null}
+      </Screen>
+    );
   }
   return (
     <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={isRefetching} onRefresh={refetch} />}>

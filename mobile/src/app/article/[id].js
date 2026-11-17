@@ -61,7 +61,9 @@ export default function ArticleScreen() {
       <Pressable onPress={share} hitSlop={10} accessibilityRole="button" accessibilityLabel="Share article">
         <Ionicons name="share-outline" size={22} color={c.text} />
       </Pressable>
-      {retracted || a.offline ? null : <BookmarkButton itemType="article" itemId={a.id} />}
+      {retracted || a.offline ? null : (
+        <BookmarkButton itemType="article" itemId={a.id} item={{ id: a.id, slug: a.slug, title: a.title, summary: a.summary, tags: a.tags, publishedAt: a.publishedAt, readingMinutes: a.readingMinutes }} />
+      )}
     </View>
   );
 

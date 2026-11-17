@@ -32,19 +32,9 @@ function LeaderboardCard() {
 
 /** Subjects to practise, weakest first (by the user's accuracy), then by question count. */
 function PracticeSection() {
-  const c = useTheme();
-  const { signedIn } = useAuth();
   const { data: taxonomy } = useTaxonomy();
   const { data: counts } = usePracticeSubjects();
   const { data: progress } = useProgress();
-  if (!signedIn) {
-    return (
-      <Card onPress={() => router.push('/login')} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-        <Ionicons name="barbell-outline" size={24} color={c.accent} />
-        <T style={{ flex: 1 }}>Sign in to practise questions by subject</T>
-      </Card>
-    );
-  }
   const acc = new Map((progress?.progress?.bySubject || []).map((x) => [x.subject, x.accuracy]));
   const subjects = Object.entries(counts?.subjects || {})
     .sort((a, b) => (acc.get(a[0]) ?? 101) - (acc.get(b[0]) ?? 101) || b[1] - a[1]);

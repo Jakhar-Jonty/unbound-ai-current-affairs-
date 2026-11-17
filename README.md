@@ -191,6 +191,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/quizzes` | Published quizzes (`?type=daily`) |
 | GET | `/quizzes/today` | Today's daily quiz (IST), without answers; `myAttempt` if signed in |
 | GET | `/quizzes/:id` | A quiz, without answers |
+| POST | `/quizzes/:id/check` | Guests: grade answers without saving (same result shape, `id: null`); rate-limited per IP |
 | POST | `/quizzes/:id/attempts` | `{ answers: [{ questionId, selectedIndex \| null, timeMs? }], durationMs? }` → result with explanations. One attempt per quiz |
 | GET | `/attempts/:id` | Your result, with explanations and any corrections made since |
 | GET | `/me/attempts` | Your attempt history |
@@ -200,8 +201,8 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | DELETE | `/me/bookmarks/:id` | Remove a bookmark |
 | GET | `/leaderboard/weekly` | Daily-quiz correct answers this week (Mon–Sun IST): top 50 as "First L.", plus `me` |
 | GET | `/practice/subjects` | Published question count per subject |
-| GET | `/practice/questions` | `?subject=&count=10`: random set, favouring questions not yet answered correctly |
-| POST | `/practice/answers` | `{ questionId, selectedIndex }` → correct answer and explanation immediately |
+| GET | `/practice/questions` | `?subject=&count=10`: random set, favouring questions not yet answered correctly. Works without an account |
+| POST | `/practice/answers` | `{ questionId, selectedIndex }` → correct answer and explanation immediately. Guests: not stored, free daily allowance per IP |
 | GET | `/me/insights` | Premium: weak subjects, trends, accuracy by GS paper, questions to revisit (last 90 days) |
 | GET | `/billing/plans` | Plans, prices, free limits, where purchase is available |
 | GET | `/billing/status` | Your premium status, limits and subscription |

@@ -13,7 +13,6 @@ import BookmarkButton from '../../components/BookmarkButton';
 import AnswerFeedback from '../../components/AnswerFeedback';
 import PressableScale from '../../components/PressableScale';
 import FadeIn from '../../components/FadeIn';
-import SignInPrompt from '../../components/SignInPrompt';
 import { PremiumGate, isPremiumError } from '../../components/Premium';
 import { error as hapticError, success as hapticSuccess, tap } from '../../lib/haptics';
 import { Button, Card, Empty, ErrorView, Loading, ProgressBar, Screen, T } from '../../components/ui';
@@ -23,7 +22,8 @@ export default function Practice() {
   const c = useTheme();
   const qc = useQueryClient();
   const { subject } = useLocalSearchParams();
-  const { signedIn, user } = useAuth();
+  const { user } = useAuth();
+  const guest = !user?.id;
   const { data: taxonomy } = useTaxonomy();
   const { data, isLoading, error, refetch } = usePracticeSet(subject);
   const [index, setIndex] = useState(0);
@@ -37,7 +37,6 @@ export default function Practice() {
   });
   const title = subjectLabel(taxonomy, subject);
 
-  if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="barbell-outline" title="Sign in to practise" /></Screen>;
   if (isLoading) return <Loading />;
   if (isPremiumError(error)) return <Screen edges={[]}><PremiumGate title="Daily practice limit reached" message={error.message} /></Screen>;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
@@ -68,8 +67,9 @@ export default function Practice() {
             <T color={c.onInverse}>{title}</T>
           </Card>
           <T variant="small" color="textSecondary" style={{ marginTop: spacing.lg, textAlign: 'center' }}>
-            Practice counts toward your streak and subject accuracy.
+            {guest ? 'Sign in to save practice to your streak and subject accuracy.' : 'Practice counts toward your streak and subject accuracy.'}
           </T>
+          {guest ? <Button title="Create a free account" onPress={() => router.push('/register')} style={{ marginTop: spacing.lg }} /> : null}
           <Button title="Practise again" icon="refresh" onPress={restart} style={{ marginTop: spacing.xl }} />
           <Button title="Done" variant="outline" onPress={() => { qc.invalidateQueries({ queryKey: ['me', user?.id] }); router.back(); }} style={{ marginTop: spacing.sm }} />
         </Screen>
@@ -87,7 +87,7 @@ export default function Practice() {
         <ProgressBar value={index + (r ? 1 : 0)} max={questions.length} />
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, marginTop: spacing.xl, marginBottom: spacing.lg }}>
           <T variant="heading" style={{ flex: 1 }} accessibilityRole="header">{q.stem}</T>
-          <BookmarkButton itemType="question" itemId={q.id} size={22} />
+          <BookmarkButton itemType="question" itemId={q.id} size={22} item={{ id: q.id, stem: q.stem, options: q.options, correctIndex: r?.correctIndex, explanation: r?.explanation, article: r?.article }} />
         </View>
         <View accessibilityRole="radiogroup" style={{ gap: spacing.sm }}>
           {q.options.map((opt, i) => {

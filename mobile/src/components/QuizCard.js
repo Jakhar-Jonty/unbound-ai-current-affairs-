@@ -2,13 +2,17 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, spacing, radius } from '../theme';
-import { useTodayQuiz } from '../lib/queries';
+import { useGuestQuiz, useTodayQuiz } from '../lib/queries';
+import { useAuth } from '../lib/auth';
 import { Button, Card, T } from './ui';
 
 /** "Today's quiz" call to action, inverted (black on light, ivory on dark) to stand out. */
 export default function TodayQuizCard() {
   const c = useTheme();
   const { data, isLoading, error, refetch } = useTodayQuiz();
+  const { user } = useAuth();
+  const guest = !user?.id;
+  const { data: guestDone } = useGuestQuiz(guest ? data?.quiz?.id : null);
 
   let body;
   if (isLoading) {
@@ -28,7 +32,7 @@ export default function TodayQuizCard() {
       </>
     );
   } else {
-    const done = data.myAttempt;
+    const done = data.myAttempt || (guestDone ? { ...guestDone.result, id: 'guest', guest: true } : null);
     body = (
       <>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
@@ -39,12 +43,12 @@ export default function TodayQuizCard() {
           {done ? `You scored ${done.score}/${done.total}` : `${data.quiz.questionCount} questions from today’s news`}
         </T>
         <T variant="small" color={c.onInverse} style={{ opacity: 0.8, marginTop: spacing.xs }}>
-          {done ? 'Review the explanations to lock in what you learned.' : 'About 5 minutes. Explanations after you submit.'}
+          {done?.guest ? 'Create a free account to save this score and start your streak.' : done ? 'Review the explanations to lock in what you learned.' : 'About 5 minutes. Explanations after you submit.'}
         </T>
         <Button
           title={done ? 'Review answers' : 'Start quiz'}
           icon={done ? 'reader-outline' : 'play'}
-          onPress={() => router.push(done ? `/result/${done.id}` : `/quiz/${data.quiz.id}`)}
+          onPress={() => router.push(done ? (done.guest ? `/result/guest?quiz=${data.quiz.id}` : `/result/${done.id}`) : `/quiz/${data.quiz.id}`)}
           style={{ marginTop: spacing.lg, alignSelf: 'flex-start' }}
         />
       </>
