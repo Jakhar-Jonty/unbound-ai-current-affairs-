@@ -14,6 +14,7 @@ const rawItemSchema = new mongoose.Schema(
     publishedAt: Date,
     status: { type: String, enum: RAW_STATUSES, default: 'new', index: true },
     attempts: { type: Number, default: 0 },
+    priority: { type: Number, default: 0 }, // from the feed; higher is written first
     lastError: String,
     processingStartedAt: Date,
     skipReason: String,
@@ -27,5 +28,6 @@ const rawItemSchema = new mongoose.Schema(
 );
 
 rawItemSchema.index({ status: 1, publishedAt: -1 });
+rawItemSchema.index({ status: 1, priority: -1, publishedAt: -1 });
 
 module.exports = { RawItem: mongoose.model('RawItem', rawItemSchema), RAW_STATUSES };

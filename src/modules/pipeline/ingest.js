@@ -71,8 +71,9 @@ async function ingestFeeds({ feeds = getFeeds(), fetchImpl = fetch, log } = {}) 
       stats.fetched += items.length;
       // Optional per-feed headline filter for routine notices (saves an AI call each).
       const exclude = feed.exclude ? new RegExp(feed.exclude, 'i') : null;
+      const excludeUrl = feed.excludeUrl ? new RegExp(feed.excludeUrl, 'i') : null;
       const fresh = items.filter((i) => {
-        if (exclude?.test(i.title)) {
+        if (exclude?.test(i.title) || excludeUrl?.test(i.url)) {
           stats.excluded += 1;
           return false;
         }
@@ -85,7 +86,7 @@ async function ingestFeeds({ feeds = getFeeds(), fetchImpl = fetch, log } = {}) 
         fresh.map((i) => ({
           updateOne: {
             filter: { url: i.url },
-            update: { $setOnInsert: { ...i, feedId: feed.id, publisher: feed.publisher, status: 'new' } },
+            update: { $setOnInsert: { ...i, feedId: feed.id, publisher: feed.publisher, priority: feed.priority || 0, status: 'new' } },
             upsert: true,
           },
         })),

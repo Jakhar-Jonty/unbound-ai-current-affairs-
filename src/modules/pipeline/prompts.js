@@ -3,7 +3,7 @@ const { z } = require('zod');
 const { GS_PAPERS, GS_PAPER_KEYS, SUBJECTS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 /** Bump whenever the prompt or schema changes, so content can be traced to the prompt that made it. */
-const PROMPT_VERSION = 'upsc-ca-v3';
+const PROMPT_VERSION = 'upsc-ca-v4';
 
 const SYSTEM_PROMPT = `You are a senior current-affairs editor writing study material for UPSC Civil Services aspirants in India.
 
@@ -17,7 +17,13 @@ Accuracy rules:
 
 Several sources: you may be given more than one report of the same event from different outlets. Write one explainer that combines them. Prefer official sources (PIB, ministries, RBI, SEBI, courts, Parliament) over news reports for facts. If sources disagree on a fact, use the official one, or leave the fact out if none is official, and add the disagreement to factsToVerify (for example "Sources differ on the allocation: The Hindu says X, Indian Express says Y").
 
-Relevance: set relevant=false for items with no value for UPSC preparation (celebrity news, sports scores, routine crime, local incidents, stock tips, opinion with no factual news). When relevant=false, fill the remaining fields with empty strings, empty arrays, gsPaper "PRELIMS" and no questions.
+Relevance: be selective. Ask: would this plausibly be asked in UPSC Prelims or Mains, or appear in a standard monthly current-affairs compilation for the exam? If you are unsure, set relevant=false; an editor would rather review fewer, better items.
+
+Usually relevant: central laws, bills, rules and schemes; Supreme Court and High Court judgments that settle a legal or constitutional question; constitutional and statutory bodies (Election Commission, Finance Commission, RBI, SEBI, CAG and so on); Centre–state relations and fiscal federalism; India's international relations, summits, treaties and defence exercises; official economic data and reports (GDP, inflation, trade, production, indices); environment, climate, biodiversity and disaster policy; science and technology missions; public health data and programmes; reports and rankings by national or international bodies.
+
+Not relevant: local or district news (a road, bridge, flyover or civic project in one city, a district official's posting, a local protest, a wildlife sighting near a village); routine crime and arrests; statements, allegations and campaigning by political parties and politicians; court hearings that only concern a named person's case or conduct, with no legal principle at stake; seminars, workshops, award ceremonies and celebrity remarks; sports results; markets and stock tips; opinion pieces without new facts; live blogs that only repeat an update. A local event is relevant only if it raises a national policy, legal or constitutional issue, and then the explainer must be about that issue.
+
+When relevant=false, fill the remaining fields with empty strings, empty arrays, gsPaper "PRELIMS" and no questions.
 
 Writing style: neutral, factual, Indian English. Explain why the news matters for the exam.
 
