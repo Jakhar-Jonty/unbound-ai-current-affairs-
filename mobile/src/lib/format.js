@@ -16,3 +16,10 @@ export function compareVersions(a = '0', b = '0') {
 }
 
 export const optionLetter = (i) => String.fromCharCode(65 + i);
+
+/** Same rule as the server: "Priya Sharma" -> "Priya S." */
+export function shortName(name = '') {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'Aspirant';
+  return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}

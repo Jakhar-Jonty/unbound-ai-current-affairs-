@@ -47,6 +47,14 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user.toPublic() });
 });
 
+router.patch('/me', requireAuth, validate(z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  showOnLeaderboard: z.boolean().optional(),
+})), async (req, res) => {
+  const user = await User.findByIdAndUpdate(req.user._id, { $set: req.valid.body }, { returnDocument: 'after' });
+  res.json({ user: user.toPublic() });
+});
+
 const password = z.string().min(8).max(200);
 
 // Always 202, whether or not the email is registered.
@@ -86,6 +94,7 @@ router.delete('/me', requireAuth, limiter, validate(z.object({ password: z.strin
     Bookmark.deleteMany({ user: uid }),
     DeviceToken.deleteMany({ user: uid }),
     reset.PasswordReset.deleteMany({ user: uid }),
+    require('../practice/practice.model').PracticeAnswer.deleteMany({ user: uid }),
   ]);
   await User.deleteOne({ _id: uid });
   res.status(204).end();

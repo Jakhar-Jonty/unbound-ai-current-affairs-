@@ -8,7 +8,7 @@ import { optionLetter } from '../../lib/format';
 import { useTheme, spacing } from '../../theme';
 import ArticleCard from '../../components/ArticleCard';
 import SignInPrompt from '../../components/SignInPrompt';
-import { Button, Card, Empty, ErrorView, Loading, Screen, Tag, T } from '../../components/ui';
+import { Button, Card, Empty, ErrorView, Loading, OfflineNote, Screen, Tag, T } from '../../components/ui';
 
 function SavedQuestion({ item }) {
   const c = useTheme();
@@ -41,7 +41,9 @@ export default function Saved() {
   }
   return (
     <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={isRefetching} onRefresh={refetch} />}>
-      <T variant="display" style={{ marginBottom: spacing.lg }}>Saved</T>
+      <T variant="display" style={{ marginBottom: spacing.xs }}>Saved</T>
+      <T variant="small" color="textSecondary" style={{ marginBottom: spacing.lg }}>Saved articles are downloaded so you can read them offline.</T>
+      {data?.offline ? <OfflineNote message="You’re offline. Showing your saved items." /> : null}
       {isLoading ? <Loading /> : error ? <ErrorView error={error} onRetry={refetch} /> : !data.items.length ? (
         <Empty icon="bookmark-outline" title="Nothing saved yet" message="Tap the bookmark on any article or quiz question to save it for revision." action={<Button title="Browse articles" variant="outline" onPress={() => router.push('/explore')} />} />
       ) : data.items.map((b) => {

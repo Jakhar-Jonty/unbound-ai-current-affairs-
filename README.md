@@ -134,6 +134,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/auth/password/forgot` | `{ email }` → always 202; emails a 6-digit code (15 min, single use, 5 tries) |
 | POST | `/auth/password/reset` | `{ email, code, password }` → `{ user, token }`; signs out other sessions |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` → `{ user, token }`; signs out other sessions |
+| PATCH | `/auth/me` | `{ name?, showOnLeaderboard? }` |
 | DELETE | `/auth/me` | `{ password }` permanently deletes the account and personal data |
 | GET | `/taxonomy` | GS papers and subjects |
 | GET | `/articles` | Published articles; filters `subject`, `gsPaper`, `q` (text search), `from`, `to` |
@@ -144,10 +145,14 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/quizzes/:id/attempts` | `{ answers: [{ questionId, selectedIndex \| null, timeMs? }], durationMs? }` → result with explanations. One attempt per quiz |
 | GET | `/attempts/:id` | Your result, with explanations and any corrections made since |
 | GET | `/me/attempts` | Your attempt history |
-| GET | `/me/progress` | Accuracy overall and per subject, plus daily streak (current, best) |
+| GET | `/me/progress` | Accuracy overall and per subject (quizzes + practice), practice totals, daily streak (quiz or practice) |
 | GET/POST | `/me/bookmarks` | List, or add `{ itemType: article\|question, itemId, note? }` |
 | GET | `/me/bookmarks/status` | `?itemType=article&ids=a,b` → `{ bookmarks: { [itemId]: bookmarkId } }` |
 | DELETE | `/me/bookmarks/:id` | Remove a bookmark |
+| GET | `/leaderboard/weekly` | Daily-quiz correct answers this week (Mon–Sun IST): top 50 as "First L.", plus `me` |
+| GET | `/practice/subjects` | Published question count per subject |
+| GET | `/practice/questions` | `?subject=&count=10`: random set, favouring questions not yet answered correctly |
+| POST | `/practice/answers` | `{ questionId, selectedIndex }` → correct answer and explanation immediately |
 | POST | `/me/devices` | Register an Expo push token `{ token, platform, appVersion? }` |
 | DELETE | `/me/devices` | Unregister `{ token }` (call on sign-out) |
 

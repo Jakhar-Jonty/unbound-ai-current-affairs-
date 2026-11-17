@@ -4,9 +4,10 @@ import { Card, T, Tag } from './ui';
 import { spacing } from '../theme';
 import { formatDate } from '../lib/format';
 import { useTaxonomy } from '../lib/queries';
+import { SUBJECT_LABELS } from '../lib/subjects';
 
 export function subjectLabel(taxonomy, key) {
-  return taxonomy?.subjects?.[key]?.label || key;
+  return taxonomy?.subjects?.[key]?.label || SUBJECT_LABELS[key] || key;
 }
 
 export default function ArticleCard({ article }) {

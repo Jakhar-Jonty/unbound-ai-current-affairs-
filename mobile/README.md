@@ -8,8 +8,9 @@ React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs 
 - **Explore:** search and filter by UPSC subject
 - **Article:** summary, key points, explainer, "why it matters for UPSC", sources, corrections and retraction notices
 - **Quiz:** one question at a time, jump between questions, warning about unanswered questions, then a result screen with explanations
-- **Saved:** bookmarked articles and questions (with show/hide answer)
-- **Profile:** daily streak, accuracy overall and by subject, change password, delete account (required by the App Store), sign out
+- **Saved:** bookmarked articles and questions (with show/hide answer). Saved articles, and the last 30 articles read, are kept on the device and open without a connection, even if the app is started offline
+- **Quizzes:** today's quiz, the weekly leaderboard, practice by subject (weakest subjects first, answer and explanation after each question) and past quizzes
+- **Profile:** daily streak, leaderboard visibility switch, accuracy overall and by subject, change password, delete account (required by the App Store), sign out
 - **Forgot password:** emailed 6-digit code, entered in the app (no app links needed)
 - Light and dark mode, push notifications (tapping one opens the quiz), and a forced-update screen driven by the backend's `MIN_APP_VERSION`
 

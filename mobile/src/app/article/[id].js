@@ -7,7 +7,7 @@ import { formatDate } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
 import BookmarkButton from '../../components/BookmarkButton';
 import { subjectLabel } from '../../components/ArticleCard';
-import { Card, Divider, ErrorView, Loading, Screen, SectionTitle, Tag, T } from '../../components/ui';
+import { Card, Divider, ErrorView, Loading, OfflineNote, Screen, SectionTitle, Tag, T } from '../../components/ui';
 
 export default function ArticleScreen() {
   const c = useTheme();
@@ -21,8 +21,9 @@ export default function ArticleScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerRight: () => (retracted ? null : <BookmarkButton itemType="article" itemId={a.id} />) }} />
+      <Stack.Screen options={{ headerRight: () => (retracted || a.offline ? null : <BookmarkButton itemType="article" itemId={a.id} />) }} />
       <Screen edges={[]}>
+        {a.offline ? <OfflineNote /> : null}
         {retracted ? (
           <Card style={{ borderColor: c.incorrect, backgroundColor: c.incorrectSoft, marginBottom: spacing.lg }}>
             <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>

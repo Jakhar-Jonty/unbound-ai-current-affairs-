@@ -125,6 +125,17 @@ export function ProgressBar({ value, max = 100, height = 6 }) {
   );
 }
 
+/** Small notice shown when content comes from the offline copy. */
+export function OfflineNote({ message = 'You’re offline. Showing your saved copy.' }) {
+  const c = useTheme();
+  return (
+    <View accessibilityRole="alert" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: c.accentSoft, marginBottom: spacing.lg }}>
+      <Ionicons name="cloud-offline-outline" size={18} color={c.text} />
+      <T variant="small" style={{ flex: 1 }}>{message}</T>
+    </View>
+  );
+}
+
 export function Divider() {
   const c = useTheme();
   return <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.borderStrong, marginVertical: spacing.lg }} />;

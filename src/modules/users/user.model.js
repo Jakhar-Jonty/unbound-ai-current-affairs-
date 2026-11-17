@@ -12,13 +12,15 @@ const userSchema = new mongoose.Schema(
     disabled: { type: Boolean, default: false },
     // Bumped on password change/reset so tokens issued earlier stop working.
     tokenVersion: { type: Number, default: 0 },
+    // Shown on the weekly leaderboard as "First L." unless the user opts out.
+    showOnLeaderboard: { type: Boolean, default: true },
     lastLoginAt: Date,
   },
   { timestamps: true },
 );
 
 userSchema.methods.toPublic = function toPublic() {
-  return { id: this._id, email: this.email, name: this.name, role: this.role, createdAt: this.createdAt };
+  return { id: this._id, email: this.email, name: this.name, role: this.role, showOnLeaderboard: this.showOnLeaderboard !== false, createdAt: this.createdAt };
 };
 
 module.exports = { User: mongoose.model('User', userSchema), ROLES };

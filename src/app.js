@@ -56,6 +56,8 @@ function createApp() {
   v1.use(require('./modules/quiz/quiz.routes'));
   v1.use(require('./modules/bookmarks/bookmark.routes'));
   v1.use(require('./modules/notifications/notification.routes'));
+  v1.use(require('./modules/leaderboard/leaderboard.routes'));
+  v1.use(require('./modules/practice/practice.routes'));
   v1.use('/admin', require('./modules/admin/admin.routes'));
   app.use('/api/v1', v1);
 

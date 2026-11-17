@@ -1,8 +1,9 @@
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Pressable, RefreshControl, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { useAuth } from '../../lib/auth';
+import { shortName } from '../../lib/format';
 import { useProgress, useTaxonomy } from '../../lib/queries';
 import { useTheme, spacing } from '../../theme';
 import { subjectLabel } from '../../components/ArticleCard';
@@ -33,7 +34,7 @@ function Stat({ label, value }) {
 
 export default function Profile() {
   const c = useTheme();
-  const { user, signedIn, signOut } = useAuth();
+  const { user, signedIn, signOut, updateProfile } = useAuth();
   const { data: taxonomy } = useTaxonomy();
   const { data, isLoading, error, refetch, isRefetching } = useProgress();
   const version = Constants.expoConfig?.version;
@@ -66,6 +67,11 @@ export default function Profile() {
             <Stat label="Questions" value={p.questionsSeen} />
             <Stat label="Accuracy" value={p.accuracy == null ? '–' : `${p.accuracy}%`} />
           </Card>
+          {p.practice?.answered ? (
+            <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm }}>
+              Plus {p.practice.answered} practice {p.practice.answered === 1 ? 'question' : 'questions'} ({p.practice.correct} correct). Subject accuracy below includes practice.
+            </T>
+          ) : null}
           {subjects.length ? (
             <>
               <SectionTitle>Accuracy by subject</SectionTitle>
@@ -87,6 +93,22 @@ export default function Profile() {
 
       <SectionTitle>Account</SectionTitle>
       <Card style={{ paddingVertical: spacing.xs }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md }}>
+          <Ionicons name="trophy-outline" size={20} color={c.text} />
+          <View style={{ flex: 1 }}>
+            <T>Show me on the leaderboard</T>
+            <T variant="small" color="textSecondary">Shown as “{shortName(user.name)}”</T>
+          </View>
+          <Switch
+            accessibilityLabel="Show me on the leaderboard"
+            value={user.showOnLeaderboard !== false}
+            onValueChange={(v) => updateProfile({ showOnLeaderboard: v }).catch(() => {})}
+            trackColor={{ true: c.accent, false: c.border }}
+            thumbColor={c.background}
+            activeThumbColor={c.background}
+          />
+        </View>
+        <View style={{ height: 1, backgroundColor: c.border }} />
         <AccountRow icon="key-outline" label="Change password" onPress={() => router.push('/account/password')} />
         <View style={{ height: 1, backgroundColor: c.border }} />
         <AccountRow icon="trash-outline" label="Delete account" danger onPress={() => router.push('/account/delete')} />

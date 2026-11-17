@@ -4,6 +4,7 @@ const config = require('../../config');
 const { Quiz } = require('./quiz.model');
 const { Question } = require('./question.model');
 const { Attempt } = require('./attempt.model');
+const { PracticeAnswer } = require('../practice/practice.model');
 const { badRequest, conflict, notFound } = require('../../lib/errors');
 const { localDateString } = require('../../lib/dates');
 
@@ -147,14 +148,44 @@ async function progressFor(userId) {
     ]),
   ]);
   const o = overall[0] || { quizzes: 0, score: 0, total: 0 };
-  const recent = await Attempt.find({ user: uid }).sort({ submittedAt: -1 }).limit(400).select('submittedAt').lean();
-  const streak = computeStreak(recent.map((a) => localDateString(a.submittedAt)));
+  const [recent, practiceBySubject, recentPractice, practiceTotals] = await Promise.all([
+    Attempt.find({ user: uid }).sort({ submittedAt: -1 }).limit(400).select('submittedAt').lean(),
+    PracticeAnswer.aggregate([
+      { $match: { user: uid } },
+      { $unwind: '$subjects' },
+      { $group: { _id: '$subjects', seen: { $sum: 1 }, correct: { $sum: { $cond: ['$isCorrect', 1, 0] } } } },
+    ]),
+    // One row per active practice day (in UTC days; converted below).
+    PracticeAnswer.aggregate([
+      { $match: { user: uid } },
+      { $sort: { answeredAt: -1 } },
+      { $limit: 2000 },
+      { $project: { answeredAt: 1 } },
+    ]),
+    PracticeAnswer.aggregate([{ $match: { user: uid } }, { $group: { _id: null, n: { $sum: 1 }, c: { $sum: { $cond: ['$isCorrect', 1, 0] } } } }]),
+  ]);
+  const streak = computeStreak([
+    ...recent.map((a) => localDateString(a.submittedAt)),
+    ...recentPractice.map((a) => localDateString(a.answeredAt)),
+  ]);
+
+  // Subject accuracy combines quiz and practice answers.
+  const subj = new Map(bySubject.map((x) => [x._id, { ...x }]));
+  for (const x of practiceBySubject) {
+    const cur = subj.get(x._id) || { _id: x._id, seen: 0, correct: 0, attempted: 0 };
+    cur.seen += x.seen;
+    cur.correct += x.correct;
+    cur.attempted += x.seen;
+    subj.set(x._id, cur);
+  }
+  bySubject.splice(0, bySubject.length, ...[...subj.values()].sort((a, b) => a._id.localeCompare(b._id)));
   return {
     streak,
     quizzesTaken: o.quizzes,
     questionsSeen: o.total,
     correct: o.score,
     accuracy: o.total ? Math.round((o.score / o.total) * 1000) / 10 : null,
+    practice: { answered: practiceTotals[0]?.n || 0, correct: practiceTotals[0]?.c || 0 },
     bySubject: bySubject.map((s) => ({
       subject: s._id,
       seen: s.seen,

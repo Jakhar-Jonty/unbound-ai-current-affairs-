@@ -7,7 +7,8 @@ import ListScreen from '../../components/ListScreen';
 import ArticleCard from '../../components/ArticleCard';
 import TodayQuizCard from '../../components/QuizCard';
 import StreakBadge from '../../components/StreakBadge';
-import { Empty, ErrorView, SectionTitle, T } from '../../components/ui';
+import { Button, Empty, ErrorView, SectionTitle, T } from '../../components/ui';
+import { router } from 'expo-router';
 
 export default function Today() {
   const { user } = useAuth();
@@ -25,7 +26,14 @@ export default function Today() {
           {!user ? <View style={{ height: spacing.sm }} /> : null}
           <TodayQuizCard />
           <SectionTitle>Latest current affairs</SectionTitle>
-          {articles.error ? <ErrorView error={articles.error} onRetry={articles.refetch} /> : null}
+          {articles.error?.status === 0 ? (
+            <Empty
+              icon="cloud-offline-outline"
+              title="You’re offline"
+              message="Your saved articles and the ones you read recently are available offline."
+              action={<Button title="Open saved articles" variant="outline" onPress={() => router.push('/saved')} />}
+            />
+          ) : articles.error ? <ErrorView error={articles.error} onRetry={articles.refetch} /> : null}
         </View>
       }
       empty={articles.error ? null : <Empty title="No articles yet" message="New explainers are published through the day after editorial review." />}
