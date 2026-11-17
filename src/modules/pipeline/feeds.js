@@ -11,7 +11,7 @@ const DEFAULT_FEEDS = [
   { id: 'pib-english', publisher: 'Press Information Bureau', url: 'https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3' },
   { id: 'thehindu-national', publisher: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss' },
   { id: 'indianexpress-explained', publisher: 'The Indian Express', url: 'https://indianexpress.com/section/explained/feed/' },
-  { id: 'downtoearth', publisher: 'Down To Earth', url: 'https://www.downtoearth.org.in/rss' },
+  { id: 'downtoearth', publisher: 'Down To Earth', url: 'https://www.downtoearth.org.in/stories.rss' },
 ];
 
 function getFeeds() {
