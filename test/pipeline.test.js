@@ -3,7 +3,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { setupDb, teardownDb, clearDb, rss, fakeFetch } = require('./helpers');
 const { ingestFeeds, parseFeed } = require('../src/modules/pipeline/ingest');
-const { generateContent } = require('../src/modules/pipeline/generate');
+const { generateContent, isRateLimit } = require('../src/modules/pipeline/generate');
 const { createMockProvider } = require('../src/modules/pipeline/ai/mock');
 const { RawItem } = require('../src/modules/pipeline/rawItem.model');
 const { Article } = require('../src/modules/content/article.model');
@@ -110,4 +110,42 @@ test('stale processing items are recovered and duplicate sources are skipped', a
   const s2 = await generateContent({ provider: createMockProvider() });
   assert.equal(s2.skipped, 1);
   assert.equal(await Article.countDocuments(), 1);
+});
+
+test('a rate limit puts stories back without using attempts and stops the run', async () => {
+  await RawItem.create([1, 2, 3].map((n) => ({
+    url: `https://n.test/rl${n}`, feedId: 'test', publisher: 'Test Times', title: `Cabinet approves scheme number ${n}`, publishedAt: new Date(Date.now() - n * 60000),
+  })));
+  const mock = createMockProvider();
+  let calls = 0;
+  const provider = {
+    ...mock,
+    async generateJSON(args) {
+      calls += 1;
+      if (calls === 2) throw Object.assign(new Error('You exceeded your current quota'), { status: 429 });
+      return mock.generateJSON(args);
+    },
+  };
+  const stats = await generateContent({ provider, limit: 10, concurrency: 1, maxAttempts: 1 });
+  assert.equal(stats.created, 1);
+  assert.equal(stats.rateLimited, 1);
+  assert.equal(stats.deferred, 1, 'the run stops calling the provider after a rate limit');
+  assert.equal(stats.failed, 0, 'a rate limit never marks an item failed, even at maxAttempts 1');
+  assert.equal(calls, 2);
+
+  const queued = await RawItem.find({ status: 'new' }).sort({ url: 1 });
+  assert.equal(queued.length, 2);
+  assert.deepEqual(queued.map((i) => i.attempts), [0, 0]);
+  assert.match(queued.find((i) => i.lastError).lastError, /Rate limited/);
+
+  const next = await generateContent({ provider: mock, limit: 10, concurrency: 1 });
+  assert.equal(next.created, 2, 'the next run picks them up');
+});
+
+test('rate limit detection covers each provider SDK', () => {
+  assert.equal(isRateLimit({ status: 429 }), true);
+  assert.equal(isRateLimit({ status: 529, message: 'Overloaded' }), true);
+  assert.equal(isRateLimit(new Error('{"error":{"code":429,"status":"RESOURCE_EXHAUSTED"}}')), true);
+  assert.equal(isRateLimit({ status: 400, message: 'Developer instruction is not enabled' }), false);
+  assert.equal(isRateLimit(new Error('AI output failed validation: subjects')), false);
 });
