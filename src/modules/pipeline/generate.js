@@ -5,7 +5,7 @@ const { Article } = require('../content/article.model');
 const { Question } = require('../quiz/question.model');
 const { uniqueSlug } = require('../content/content.service');
 const { createProvider } = require('./ai');
-const { PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt, OUTPUT_JSON_SCHEMA, generatedOutput } = require('./prompts');
+const { PROMPT_VERSION, SYSTEM_PROMPT, buildUserPrompt, OUTPUT_JSON_SCHEMA, withArrayBounds, parseGeneratedOutput } = require('./prompts');
 const { fetchText } = require('./ingest');
 const { extractArticleText } = require('../../lib/text');
 const { mapWithConcurrency } = require('../../lib/pool');
@@ -133,15 +133,13 @@ async function processStory(items, { provider, fetchImpl, maxAttempts }) {
     const result = await provider.generateJSON({
       system: SYSTEM_PROMPT,
       prompt: buildUserPrompt(promptSources),
-      schema: OUTPUT_JSON_SCHEMA,
+      schema: provider.supportsArrayBounds ? withArrayBounds(OUTPUT_JSON_SCHEMA) : OUTPUT_JSON_SCHEMA,
       schemaName: 'current_affairs_item',
       context: { item: promptSources[0], items: promptSources },
     });
 
-    const parsed = generatedOutput.safeParse(result.data);
-    if (!parsed.success) {
-      throw new Error(`AI output failed validation: ${parsed.error.issues.slice(0, 3).map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
-    }
+    const parsed = parseGeneratedOutput(result.data);
+    if (!parsed.success) throw new Error(`AI output failed validation: ${parsed.error}`);
     const out = parsed.data;
 
     if (!out.relevant) {

@@ -11,6 +11,8 @@ function createGeminiProvider({ model = DEFAULT_MODEL, client } = {}) {
   return {
     name: 'gemini',
     model,
+    // Gemini's responseJsonSchema honours minItems/maxItems (e.g. exactly 4 options).
+    supportsArrayBounds: true,
     async generateJSON({ system, prompt, schema }) {
       const response = await ai.models.generateContent({
         model,

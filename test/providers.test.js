@@ -6,7 +6,7 @@ const { createClaudeProvider } = require('../src/modules/pipeline/ai/claude');
 const { createOpenAIProvider } = require('../src/modules/pipeline/ai/openai');
 const { createGeminiProvider } = require('../src/modules/pipeline/ai/gemini');
 const { createProvider } = require('../src/modules/pipeline/ai');
-const { OUTPUT_JSON_SCHEMA, generatedOutput, SYSTEM_PROMPT } = require('../src/modules/pipeline/prompts');
+const { OUTPUT_JSON_SCHEMA, generatedOutput, parseGeneratedOutput, withArrayBounds, SYSTEM_PROMPT } = require('../src/modules/pipeline/prompts');
 const { createMockProvider } = require('../src/modules/pipeline/ai/mock');
 
 const payload = { hello: 'world' };
@@ -66,4 +66,51 @@ test('provider factory and schema consistency', async () => {
   const irrelevant = await createMockProvider().generateJSON({ context: { item: { title: 'Gossip [irrelevant]' } } });
   assert.equal(generatedOutput.safeParse(irrelevant.data).success, true);
   assert.match(SYSTEM_PROMPT, /factsToVerify/);
+});
+
+async function mockOutput() {
+  return (await createMockProvider().generateJSON({ context: { item: { title: 'A policy headline', url: 'https://x.test' } } })).data;
+}
+
+test('array bounds are added only to a copy of the schema', () => {
+  const bounded = withArrayBounds(OUTPUT_JSON_SCHEMA);
+  assert.equal(bounded.properties.subjects.maxItems, 3);
+  assert.equal(bounded.properties.questions.items.properties.options.minItems, 4);
+  assert.equal(bounded.properties.questions.items.properties.options.maxItems, 4);
+  assert.equal(OUTPUT_JSON_SCHEMA.properties.subjects.maxItems, undefined, 'shared schema stays portable (Claude rejects maxItems)');
+  assert.equal(OUTPUT_JSON_SCHEMA.properties.questions.items.properties.options.maxItems, undefined);
+  assert.equal(createGeminiProvider({ client: {} }).supportsArrayBounds, true);
+});
+
+test('output parser repairs small slips without changing questions', async () => {
+  const out = await mockOutput();
+  out.subjects = ['economy', 'economy', 'polity', 'governance', 'environment'];
+  out.keywords = Array.from({ length: 20 }, (_, i) => `k${i}`);
+  out.questions.push({ ...out.questions[0], options: ['a', 'b', 'c', 'd', 'e'] });
+  const r = parseGeneratedOutput(out);
+  assert.equal(r.success, true);
+  assert.deepEqual(r.data.subjects, ['economy', 'polity', 'governance']);
+  assert.equal(r.data.keywords.length, 15);
+  assert.equal(r.droppedQuestions, 1, 'a question with 5 options is dropped, not edited');
+  assert.equal(r.data.questions.length, 2);
+  assert.deepEqual(r.data.questions[0].options, out.questions[0].options);
+});
+
+test('output parser still rejects output it cannot safely repair', async () => {
+  const noValid = await mockOutput();
+  noValid.questions = noValid.questions.map((q) => ({ ...q, options: ['a', 'b', 'c'] }));
+  const r1 = parseGeneratedOutput(noValid);
+  assert.equal(r1.success, false);
+  assert.match(r1.error, /questions\.0\.options/);
+
+  const tooManyFacts = await mockOutput();
+  tooManyFacts.factsToVerify = Array.from({ length: 31 }, (_, i) => `fact ${i}`);
+  assert.equal(parseGeneratedOutput(tooManyFacts).success, false, 'facts are never truncated');
+
+  const badSubject = await mockOutput();
+  badSubject.subjects = ['astrology'];
+  assert.equal(parseGeneratedOutput(badSubject).success, false);
+
+  assert.equal(parseGeneratedOutput({ relevant: false, relevanceReason: 'gossip' }).success, true);
+  assert.equal(parseGeneratedOutput(null).success, false);
 });
