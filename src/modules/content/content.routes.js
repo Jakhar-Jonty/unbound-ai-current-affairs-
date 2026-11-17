@@ -7,6 +7,7 @@ const { Article } = require('./article.model');
 const { toListItem, toPublicDetail } = require('./content.service');
 const { optionalAuth } = require('../users/auth.middleware');
 const { isArchive, isPremium, premiumRequired } = require('../billing/entitlements');
+const { vectorize, cosine } = require('../pipeline/similarity');
 const { GS_PAPERS, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 const router = express.Router();
@@ -25,6 +26,8 @@ router.get('/taxonomy', publicCache(3600), (_req, res) => {
 
 const listQuery = pagination.extend({
   subject: z.enum(SUBJECT_KEYS).optional(),
+  // Several subjects, comma-separated (the user's "my subjects" feed).
+  subjects: z.string().transform((s) => s.split(',').filter(Boolean)).pipe(z.array(z.enum(SUBJECT_KEYS)).max(16)).optional(),
   gsPaper: z.enum(GS_PAPER_KEYS).optional(),
   q: z.string().trim().min(2).max(100).optional(),
   from: z.coerce.date().optional(),
@@ -32,9 +35,10 @@ const listQuery = pagination.extend({
 });
 
 router.get('/articles', publicCache(60), validate(listQuery, 'query'), async (req, res) => {
-  const { page, limit, subject, gsPaper, q, from, to } = req.valid.query;
+  const { page, limit, subject, subjects, gsPaper, q, from, to } = req.valid.query;
   const filter = { status: 'published' };
   if (subject) filter['tags.subjects'] = subject;
+  else if (subjects?.length) filter['tags.subjects'] = { $in: subjects };
   if (gsPaper) filter['tags.gsPaper'] = gsPaper;
   if (q) filter.$text = { $search: q };
   if (from || to) {
@@ -48,6 +52,30 @@ router.get('/articles', publicCache(60), validate(listQuery, 'query'), async (re
   ]);
   // `premium` marks archive items (same for every user, so the list stays cacheable).
   res.json({ items: items.map((a) => ({ ...toListItem(a), premium: isArchive(a.publishedAt) })), page, limit, total });
+});
+
+/**
+ * Up to 4 other published articles on the same subjects from the last 60 days,
+ * most similar first (same scoring as story grouping), then newest.
+ */
+router.get('/articles/:id/related', publicCache(300), async (req, res) => {
+  if (!/^[a-f0-9]{24}$/i.test(req.params.id)) throw notFound('Article not found');
+  const article = await Article.findOne({ _id: req.params.id, status: { $in: ['published', 'retracted'] } }).lean();
+  if (!article) throw notFound('Article not found');
+  const since = new Date((article.publishedAt || new Date()).getTime() - 60 * 86400000);
+  const candidates = await Article.find({
+    _id: { $ne: article._id },
+    status: 'published',
+    'tags.subjects': { $in: article.tags?.subjects || [] },
+    publishedAt: { $gte: since },
+  }).sort({ publishedAt: -1 }).limit(60).lean();
+  const asItem = (a) => ({ title: a.title, description: `${a.summary} ${(a.tags?.keywords || []).join(' ')}` });
+  const vecs = vectorize([asItem(article), ...candidates.map(asItem)]);
+  const ranked = candidates
+    .map((a, i) => ({ a, score: cosine(vecs[0], vecs[i + 1]) }))
+    .sort((x, y) => y.score - x.score || y.a.publishedAt - x.a.publishedAt)
+    .slice(0, 4);
+  res.json({ items: ranked.map(({ a }) => ({ ...toListItem(a), premium: isArchive(a.publishedAt) })) });
 });
 
 router.get('/articles/:idOrSlug', optionalAuth, async (req, res) => {

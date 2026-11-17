@@ -5,6 +5,9 @@ import { useAttempt } from '../../lib/queries';
 import { optionLetter } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
 import BookmarkButton from '../../components/BookmarkButton';
+import ScoreRing from '../../components/ScoreRing';
+import StreakCelebration from '../../components/StreakCelebration';
+import FadeIn from '../../components/FadeIn';
 import { Button, Card, ErrorView, Loading, Screen, T } from '../../components/ui';
 
 function OptionRow({ text, i, a }) {
@@ -27,7 +30,7 @@ function OptionRow({ text, i, a }) {
 
 export default function ResultScreen() {
   const c = useTheme();
-  const { id } = useLocalSearchParams();
+  const { id, fresh } = useLocalSearchParams();
   const { data, isLoading, error, refetch } = useAttempt(id);
   if (isLoading) return <Loading />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
@@ -38,13 +41,15 @@ export default function ResultScreen() {
   return (
     <Screen edges={[]}>
       <Card style={{ backgroundColor: c.inverse, borderColor: c.inverse, alignItems: 'center', paddingVertical: spacing.xl }}>
-        <T variant="caption" color={c.onInverse} style={{ opacity: 0.8 }}>YOUR SCORE</T>
-        <T style={{ fontSize: 52, lineHeight: 60, fontWeight: '800', color: c.accent }} accessibilityLabel={`${r.score} out of ${r.total}`}>{r.score}/{r.total}</T>
-        <T color={c.onInverse}>{message}</T>
+        <T variant="caption" color={c.onInverse} style={{ opacity: 0.8, marginBottom: spacing.md }}>YOUR SCORE</T>
+        <ScoreRing score={r.score} total={r.total} />
+        <T color={c.onInverse} style={{ marginTop: spacing.md, textAlign: 'center' }}>{message}</T>
       </Card>
+      {fresh ? <StreakCelebration /> : null}
 
       {r.answers.map((a, n) => (
-        <Card key={a.questionId} style={{ marginTop: spacing.md }}>
+        <FadeIn key={a.questionId} from={0} duration={300 + n * 60}>
+        <Card style={{ marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
             <Ionicons
               name={a.isCorrect ? 'checkmark-circle' : a.selectedIndex === null ? 'remove-circle' : 'close-circle'}
@@ -69,6 +74,7 @@ export default function ResultScreen() {
             <Button title="Read the article" variant="ghost" icon="newspaper-outline" onPress={() => router.push(`/article/${a.article}`)} style={{ marginTop: spacing.sm, alignSelf: 'flex-start', paddingHorizontal: 0 }} />
           ) : null}
         </Card>
+        </FadeIn>
       ))}
       <Button title="Done" variant="dark" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={{ marginTop: spacing.xl }} />
     </Screen>

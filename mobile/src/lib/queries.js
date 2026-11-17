@@ -12,12 +12,14 @@ function nextPage(last) {
   return last.page * last.limit < last.total ? last.page + 1 : undefined;
 }
 
-export function useArticles({ subject, q } = {}) {
+export function useArticles({ subject, subjects, q } = {}) {
+  const multi = subjects?.length ? [...subjects].sort().join(',') : undefined;
   return useInfiniteQuery({
-    queryKey: ['articles', { subject, q }],
+    queryKey: ['articles', { subject, subjects: multi, q }],
     queryFn: ({ pageParam, signal }) => {
       const params = new URLSearchParams({ page: String(pageParam), limit: String(PAGE) });
       if (subject) params.set('subject', subject);
+      else if (multi) params.set('subjects', multi);
       if (q) params.set('q', q);
       return api(`/articles?${params}`, { signal });
     },
@@ -165,3 +167,11 @@ export function useBookmarkToggle(itemType, itemId) {
 export const useBillingPlans = () => useQuery({ queryKey: ['billing-plans'], queryFn: () => api('/billing/plans'), staleTime: 10 * 60 * 1000 });
 export const useBillingStatus = () => useMeQuery(['billing-status'], '/billing/status');
 export const useInsights = () => useMeQuery(['insights'], '/me/insights', { retry: (n, err) => err?.status !== 403 && n < 2 });
+
+export const useRelated = (id) => useQuery({
+  queryKey: ['related', id],
+  queryFn: ({ signal }) => api(`/articles/${id}/related`, { signal }).then((r) => r.items),
+  enabled: !!id,
+  staleTime: 5 * 60 * 1000,
+  retry: false,
+});

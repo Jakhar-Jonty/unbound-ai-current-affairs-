@@ -30,6 +30,8 @@ const userSchema = new mongoose.Schema(
     tokenVersion: { type: Number, default: 0 },
     // Shown on the weekly leaderboard as "First L." unless the user opts out.
     showOnLeaderboard: { type: Boolean, default: true },
+    // Subjects the user cares most about: drives the "For you" feed and practice order.
+    preferredSubjects: { type: [String], default: undefined },
     lastLoginAt: Date,
   },
   { timestamps: true },
@@ -46,6 +48,7 @@ userSchema.methods.toPublic = function toPublic() {
     hasPassword: this.hasPassword !== false,
     signInMethods: [...(this.hasPassword !== false ? ['password'] : []), ...['google', 'apple'].filter((k) => this.providers?.[k])],
     showOnLeaderboard: this.showOnLeaderboard !== false,
+    preferredSubjects: this.preferredSubjects || [],
     premium: {
       active: isPremium(this),
       plan: this.premium?.plan || null,

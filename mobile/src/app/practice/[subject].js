@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,6 +10,9 @@ import { optionLetter } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
 import { subjectLabel } from '../../components/ArticleCard';
 import BookmarkButton from '../../components/BookmarkButton';
+import AnswerFeedback from '../../components/AnswerFeedback';
+import PressableScale from '../../components/PressableScale';
+import FadeIn from '../../components/FadeIn';
 import SignInPrompt from '../../components/SignInPrompt';
 import { PremiumGate, isPremiumError } from '../../components/Premium';
 import { error as hapticError, success as hapticSuccess, tap } from '../../lib/haptics';
@@ -93,14 +96,14 @@ export default function Practice() {
             const border = isAnswer ? c.correct : isWrongPick ? c.incorrect : c.border;
             const bg = isAnswer ? c.correctSoft : isWrongPick ? c.incorrectSoft : 'transparent';
             return (
-              <Pressable
-                key={i}
+              <AnswerFeedback key={i} state={isWrongPick ? 'wrong' : isAnswer ? 'correct' : 'none'}>
+              <PressableScale
                 accessibilityRole="radio"
                 accessibilityState={{ checked: r?.selectedIndex === i, disabled: !!r }}
                 accessibilityLabel={`Option ${optionLetter(i)}: ${opt}`}
                 disabled={!!r || check.isPending}
                 onPress={() => { tap(); check.mutate({ questionId: q.id, selectedIndex: i }); }}
-                style={({ pressed }) => [s.option, { borderColor: border, backgroundColor: bg, opacity: pressed ? 0.85 : 1 }]}
+                style={[s.option, { borderColor: border, backgroundColor: bg }]}
               >
                 <View style={[s.letter, { borderColor: border === c.border ? c.borderStrong : border }]}>
                   <T variant="small" style={{ fontWeight: '700' }}>{optionLetter(i)}</T>
@@ -108,7 +111,8 @@ export default function Practice() {
                 <T style={{ flex: 1 }}>{opt}</T>
                 {isAnswer ? <Ionicons name="checkmark-circle" size={20} color={c.correct} accessibilityLabel="Correct answer" /> : null}
                 {isWrongPick ? <Ionicons name="close-circle" size={20} color={c.incorrect} accessibilityLabel="Your answer, incorrect" /> : null}
-              </Pressable>
+              </PressableScale>
+              </AnswerFeedback>
             );
           })}
         </View>
@@ -116,11 +120,13 @@ export default function Practice() {
         {check.error ? <T variant="small" color="incorrect" style={{ marginTop: spacing.md }}>{check.error.message}</T> : null}
 
         {r ? (
+          <FadeIn from={0}>
           <Card style={{ marginTop: spacing.lg }} accessibilityLiveRegion="polite">
             <T variant="heading" color={r.isCorrect ? 'correct' : 'incorrect'}>{r.isCorrect ? 'Correct' : `Not quite. The answer is ${optionLetter(r.correctIndex)}.`}</T>
             <T variant="small" color="textSecondary" style={{ marginTop: spacing.xs }}>{r.explanation}</T>
             {r.article ? <Button title="Read the article" variant="ghost" icon="newspaper-outline" onPress={() => router.push(`/article/${r.article}`)} style={{ alignSelf: 'flex-start', paddingHorizontal: 0, marginTop: spacing.xs }} /> : null}
           </Card>
+          </FadeIn>
         ) : null}
 
         <Button

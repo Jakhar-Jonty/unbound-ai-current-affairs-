@@ -22,7 +22,9 @@ export default function ArticleCard({ article }) {
       </View>
       <T variant="heading">{article.title}</T>
       <T variant="small" color="textSecondary" numberOfLines={3} style={{ marginTop: spacing.xs }}>{article.summary}</T>
-      <T variant="caption" color="textSecondary" style={{ marginTop: spacing.sm }}>{formatDate(article.publishedAt)}</T>
+      <T variant="caption" color="textSecondary" style={{ marginTop: spacing.sm }}>
+        {formatDate(article.publishedAt)}{article.readingMinutes ? ` · ${article.readingMinutes} MIN READ` : ''}
+      </T>
     </Card>
   );
 }

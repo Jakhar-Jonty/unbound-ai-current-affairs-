@@ -182,10 +182,11 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/auth/password/forgot` | `{ email }` → always 202; emails a 6-digit code (15 min, single use, 5 tries) |
 | POST | `/auth/password/reset` | `{ email, code, password }` → `{ user, token }`; signs out other sessions |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` → `{ user, token }`; signs out other sessions |
-| PATCH | `/auth/me` | `{ name?, showOnLeaderboard? }` |
+| PATCH | `/auth/me` | `{ name?, showOnLeaderboard?, preferredSubjects? }` |
 | DELETE | `/auth/me` | `{ password }` permanently deletes the account and personal data |
 | GET | `/taxonomy` | GS papers and subjects |
-| GET | `/articles` | Published articles; filters `subject`, `gsPaper`, `q` (text search), `from`, `to` |
+| GET | `/articles` | Published articles with `readingMinutes`; filters `subject` or `subjects` (comma-separated), `gsPaper`, `q` (text search), `from`, `to` |
+| GET | `/articles/:id/related` | Up to 4 recent articles on the same subjects, most similar first |
 | GET | `/articles/:idOrSlug` | Article detail with sources, corrections and any retraction notice |
 | GET | `/quizzes` | Published quizzes (`?type=daily`) |
 | GET | `/quizzes/today` | Today's daily quiz (IST), without answers; `myAttempt` if signed in |

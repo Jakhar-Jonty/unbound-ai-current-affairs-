@@ -1,15 +1,17 @@
-import { Pressable, Share, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { Animated, Pressable, Share, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useArticle, useTaxonomy } from '../../lib/queries';
+import { useArticle, useRelated, useTaxonomy } from '../../lib/queries';
+import { saveProgress } from '../../lib/reading';
 import { formatDate } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
 import BookmarkButton from '../../components/BookmarkButton';
 import { PremiumGate, isPremiumError } from '../../components/Premium';
 import { TEXT_SCALES, usePrefs } from '../../lib/prefs';
 import { tap } from '../../lib/haptics';
-import { subjectLabel } from '../../components/ArticleCard';
+import ArticleCard, { subjectLabel } from '../../components/ArticleCard';
 import { Card, Divider, ErrorView, Loading, OfflineNote, Screen, SectionTitle, Tag, T } from '../../components/ui';
 
 export default function ArticleScreen() {
@@ -18,6 +20,20 @@ export default function ArticleScreen() {
   const { data: a, isLoading, error, refetch } = useArticle(id);
   const { data: taxonomy } = useTaxonomy();
   const { prefs, update } = usePrefs();
+  const { data: related } = useRelated(a?.offline ? null : a?.id);
+  // Reading progress: a thin orange bar under the header, remembered for "Continue reading".
+  const [progress] = useState(() => new Animated.Value(0));
+  const lastSaved = useRef(0);
+  const onScroll = useCallback((e) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const max = Math.max(1, contentSize.height - layoutMeasurement.height);
+    const p = Math.min(1, Math.max(0, contentOffset.y / max));
+    progress.setValue(p);
+    if (a && Math.abs(p - lastSaved.current) >= 0.05) {
+      lastSaved.current = p;
+      saveProgress(a, p);
+    }
+  }, [a, progress]);
   const scale = prefs.textScale || 1;
   const read = { fontSize: 16 * scale, lineHeight: 25 * scale };
 
@@ -52,7 +68,10 @@ export default function ArticleScreen() {
   return (
     <>
       <Stack.Screen options={{ headerRight }} />
-      <Screen edges={[]}>
+      <View style={{ height: 3, backgroundColor: c.border }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Animated.View style={{ height: 3, backgroundColor: c.accent, width: progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }} />
+      </View>
+      <Screen edges={[]} onScroll={onScroll}>
         {a.offline ? <OfflineNote /> : null}
         {retracted ? (
           <Card style={{ borderColor: c.incorrect, backgroundColor: c.incorrectSoft, marginBottom: spacing.lg }}>
@@ -70,7 +89,7 @@ export default function ArticleScreen() {
         </View>
         <T variant="title" style={{ marginTop: spacing.md }} accessibilityRole="header">{a.title}</T>
         <T variant="small" color="textSecondary" style={{ marginTop: spacing.xs }}>
-          {formatDate(a.publishedAt)}{a.version > 1 ? ` · Updated ${formatDate(a.updatedAt)}` : ''}
+          {formatDate(a.publishedAt)}{a.readingMinutes ? ` · ${a.readingMinutes} min read` : ''}{a.version > 1 ? ` · Updated ${formatDate(a.updatedAt)}` : ''}
         </T>
 
         <View style={{ borderLeftWidth: 3, borderLeftColor: c.accent, paddingLeft: spacing.md, marginTop: spacing.lg }}>
@@ -121,6 +140,13 @@ export default function ArticleScreen() {
             {s.publisher ? `${s.publisher}: ` : ''}{s.title || s.url}
           </T>
         ))}
+        {related?.length ? (
+          <>
+            <Divider />
+            <T variant="caption" color="textSecondary" style={{ marginBottom: spacing.md }}>RELATED</T>
+            {related.map((r) => <ArticleCard key={r.id} article={r} />)}
+          </>
+        ) : null}
       </Screen>
     </>
   );
