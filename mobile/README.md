@@ -41,6 +41,8 @@ Orange is never used as text on ivory, because the contrast (2.3:1) is too low t
 
 ## Running it
 
+Expo SDK 58 needs **Node.js 22.13 or newer** (the backend works on Node 20+). With nvm: `nvm install 22 && nvm use 22`.
+
 ```bash
 cd mobile
 npm install
