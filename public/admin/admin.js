@@ -304,6 +304,32 @@ async function pipelineView() {
         h('td', {}, isAdmin ? h('button', { onclick: () => guarded(async () => { await api(`/admin/raw-items/${i._id}/retry`, { method: 'POST' }); render(); }) }, 'Retry') : null))))) : h('p', { class: 'muted' }, 'None.')));
 }
 
+async function usersView() {
+  const search = h('input', { placeholder: 'Search by email', value: new URLSearchParams(location.hash.split('?')[1] || '').get('q') || '' });
+  const q = search.value.trim();
+  const { items, total } = await api(`/admin/users?limit=50${q ? `&q=${encodeURIComponent(q)}` : ''}`);
+  const grant = (u, days) => guarded(async () => {
+    const until = days ? new Date(Date.now() + days * 86400000).toISOString() : null;
+    await api(`/admin/users/${u.id}`, { method: 'PATCH', body: { premiumUntil: until } });
+    toast(days ? `Gave ${u.email} ${days} days of Premium` : `Removed complimentary Premium from ${u.email}`);
+    render();
+  });
+  return h('div', { class: 'panel' },
+    h('h1', {}, `Users (${total})`),
+    h('form', { class: 'row', onsubmit: (e) => { e.preventDefault(); location.hash = `#/users?q=${encodeURIComponent(search.value.trim())}`; } }, search, h('button', { type: 'submit' }, 'Search')),
+    h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'User'), h('th', {}, 'Role'), h('th', {}, 'Premium'), h('th', {}))),
+      h('tbody', {}, items.map((u) => h('tr', {},
+        h('td', {}, u.name, h('div', { class: 'muted' }, `${u.email}${u.emailVerified ? '' : ' · not verified'} · ${u.signInMethods.join(', ')}`)),
+        h('td', {}, u.role, u.disabled ? h('span', { class: 'badge rejected', style: 'margin-left:6px' }, 'disabled') : null),
+        h('td', { class: 'muted' }, u.premium?.until && new Date(u.premium.until) > new Date() ? `${u.premium.plan} · until ${fmt(u.premium.until)}${u.premium.status === 'cancelled' ? ' (cancelled)' : ''}` : '—'),
+        h('td', {}, h('div', { class: 'row' },
+          u.premium?.source === 'razorpay' && new Date(u.premium.until) > new Date() ? h('span', { class: 'muted' }, 'Paid subscriber') : [
+            h('button', { onclick: () => grant(u, 30) }, '+30 days'),
+            h('button', { onclick: () => grant(u, 365) }, '+1 year'),
+            u.premium?.source === 'admin' ? h('button', { class: 'danger', onclick: () => grant(u, 0) }, 'Remove') : null,
+          ])))))));
+}
+
 async function auditView() {
   const { items } = await api('/admin/audit?limit=50');
   return h('div', { class: 'panel' }, h('h1', {}, 'Audit log'),
@@ -338,6 +364,7 @@ async function render() {
     else if (route === 'quizzes') view = await quizzesView();
     else if (route === 'pipeline') view = await pipelineView();
     else if (route === 'audit') view = await auditView();
+    else if (route && route.startsWith('users')) view = await usersView();
     else view = await articleListView('in_review', 'Review queue');
     app.replaceChildren(view);
   } catch (err) {

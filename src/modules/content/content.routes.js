@@ -5,6 +5,8 @@ const { validate, pagination, z } = require('../../lib/validate');
 const { notFound } = require('../../lib/errors');
 const { Article } = require('./article.model');
 const { toListItem, toPublicDetail } = require('./content.service');
+const { optionalAuth } = require('../users/auth.middleware');
+const { isArchive, isPremium, premiumRequired } = require('../billing/entitlements');
 const { GS_PAPERS, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 const router = express.Router();
@@ -44,10 +46,11 @@ router.get('/articles', publicCache(60), validate(listQuery, 'query'), async (re
     Article.find(filter).sort({ publishedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     Article.countDocuments(filter),
   ]);
-  res.json({ items: items.map(toListItem), page, limit, total });
+  // `premium` marks archive items (same for every user, so the list stays cacheable).
+  res.json({ items: items.map((a) => ({ ...toListItem(a), premium: isArchive(a.publishedAt) })), page, limit, total });
 });
 
-router.get('/articles/:idOrSlug', publicCache(60), async (req, res) => {
+router.get('/articles/:idOrSlug', optionalAuth, async (req, res) => {
   const { idOrSlug } = req.params;
   const byId = mongoose.isValidObjectId(idOrSlug) && /^[a-f0-9]{24}$/i.test(idOrSlug);
   const article = await Article.findOne({
@@ -55,6 +58,17 @@ router.get('/articles/:idOrSlug', publicCache(60), async (req, res) => {
     status: { $in: ['published', 'retracted'] },
   }).lean();
   if (!article) throw notFound('Article not found');
+  if (isArchive(article.publishedAt)) {
+    // Archive: the answer depends on who's asking, so it must not be cached publicly.
+    res.set('Cache-Control', 'private, no-store');
+    if (!isPremium(req.user)) {
+      const err = premiumRequired('archive');
+      err.details.teaser = { id: article._id, title: article.title, summary: article.summary, publishedAt: article.publishedAt };
+      throw err;
+    }
+  } else {
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  }
   res.json({ article: toPublicDetail(article) });
 });
 

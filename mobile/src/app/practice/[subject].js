@@ -11,6 +11,8 @@ import { useTheme, spacing, radius } from '../../theme';
 import { subjectLabel } from '../../components/ArticleCard';
 import BookmarkButton from '../../components/BookmarkButton';
 import SignInPrompt from '../../components/SignInPrompt';
+import { PremiumGate, isPremiumError } from '../../components/Premium';
+import { error as hapticError, success as hapticSuccess, tap } from '../../lib/haptics';
 import { Button, Card, Empty, ErrorView, Loading, ProgressBar, Screen, T } from '../../components/ui';
 
 /** Practice: one question at a time, answer and explanation shown right after each pick. */
@@ -25,14 +27,21 @@ export default function Practice() {
   const [results, setResults] = useState({}); // questionId -> { selectedIndex, isCorrect, correctIndex, explanation }
   const check = useMutation({
     mutationFn: (body) => api('/practice/answers', { method: 'POST', body }),
-    onSuccess: (r, body) => setResults((prev) => ({ ...prev, [body.questionId]: { ...r, selectedIndex: body.selectedIndex } })),
+    onSuccess: (r, body) => {
+      if (r.isCorrect) hapticSuccess(); else hapticError();
+      setResults((prev) => ({ ...prev, [body.questionId]: { ...r, selectedIndex: body.selectedIndex } }));
+    },
   });
   const title = subjectLabel(taxonomy, subject);
 
   if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="barbell-outline" title="Sign in to practise" /></Screen>;
   if (isLoading) return <Loading />;
+  if (isPremiumError(error)) return <Screen edges={[]}><PremiumGate title="Daily practice limit reached" message={error.message} /></Screen>;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
+  if (isPremiumError(check.error)) return <Screen edges={[]}><PremiumGate title="Daily practice limit reached" message={check.error.message} /></Screen>;
   const questions = data.questions;
+  const lastResult = Object.values(results).at(-1);
+  const remaining = lastResult && lastResult.remainingToday !== undefined ? lastResult.remainingToday : data.remainingToday;
   if (!questions.length) return <Empty icon="barbell-outline" title="No questions yet" message={`There are no ${title} questions yet. Check back after the next news cycle.`} />;
 
   const finished = index >= questions.length;
@@ -90,7 +99,7 @@ export default function Practice() {
                 accessibilityState={{ checked: r?.selectedIndex === i, disabled: !!r }}
                 accessibilityLabel={`Option ${optionLetter(i)}: ${opt}`}
                 disabled={!!r || check.isPending}
-                onPress={() => check.mutate({ questionId: q.id, selectedIndex: i })}
+                onPress={() => { tap(); check.mutate({ questionId: q.id, selectedIndex: i }); }}
                 style={({ pressed }) => [s.option, { borderColor: border, backgroundColor: bg, opacity: pressed ? 0.85 : 1 }]}
               >
                 <View style={[s.letter, { borderColor: border === c.border ? c.borderStrong : border }]}>
@@ -121,7 +130,9 @@ export default function Practice() {
           onPress={() => setIndex(index + 1)}
           style={{ marginTop: spacing.xl }}
         />
-        <T variant="small" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.md }}>{correct} correct so far</T>
+        <T variant="small" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.md }}>
+          {correct} correct so far{remaining !== null && remaining !== undefined ? ` · ${remaining} free ${remaining === 1 ? 'question' : 'questions'} left today` : ''}
+        </T>
       </Screen>
     </>
   );

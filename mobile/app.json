@@ -10,7 +10,8 @@
     "backgroundColor": "#F5F2EC",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.unbound.currentaffairs"
+      "bundleIdentifier": "com.unbound.currentaffairs",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.unbound.currentaffairs",
@@ -35,11 +36,17 @@
         {
           "color": "#FF7928"
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "extra": {
       "apiUrl": "http://localhost:4000",
       "storeUrl": {
+        "ios": "",
+        "android": ""
+      },
+      "googleClientIds": {
+        "web": "",
         "ios": "",
         "android": ""
       }

@@ -9,7 +9,8 @@ import { Button, Card, Screen, T } from '../../components/ui';
 
 export default function DeleteAccount() {
   const c = useTheme();
-  const { deleteAccount } = useAuth();
+  const { deleteAccount, user } = useAuth();
+  const hasPassword = user?.hasPassword !== false;
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -38,9 +39,14 @@ export default function DeleteAccount() {
           Your account, quiz history, progress, streak and saved items will be permanently deleted.
         </T>
       </Card>
-      <Field label="Enter your password to confirm" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
+      {hasPassword
+        ? <Field label="Enter your password to confirm" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
+        : <Field label="Type DELETE to confirm" value={password} onChangeText={setPassword} autoCapitalize="characters" autoCorrect={false} />}
+      {user?.premium?.source === 'razorpay' && user?.premium?.active ? (
+        <T variant="small" color="textSecondary" style={{ marginTop: spacing.md }}>Your Premium subscription will be cancelled and won’t renew.</T>
+      ) : null}
       {error ? <T variant="small" color="incorrect" style={{ marginTop: spacing.md }}>{error}</T> : null}
-      <Button title="Delete my account" variant="dark" icon="trash-outline" onPress={confirmDelete} loading={busy} disabled={!password} style={{ marginTop: spacing.xl }} />
+      <Button title="Delete my account" variant="dark" icon="trash-outline" onPress={confirmDelete} loading={busy} disabled={hasPassword ? !password : password !== 'DELETE'} style={{ marginTop: spacing.xl }} />
       <Button title="Cancel" variant="ghost" onPress={() => router.back()} style={{ marginTop: spacing.sm }} />
     </Screen>
   );

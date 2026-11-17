@@ -3,7 +3,7 @@ import { RefreshControl, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../../lib/auth';
-import { useBookmarks } from '../../lib/queries';
+import { useBillingPlans, useBookmarks } from '../../lib/queries';
 import { optionLetter } from '../../lib/format';
 import { useTheme, spacing } from '../../theme';
 import ArticleCard from '../../components/ArticleCard';
@@ -33,7 +33,9 @@ function SavedQuestion({ item }) {
 
 export default function Saved() {
   const c = useTheme();
-  const { signedIn } = useAuth();
+  const { signedIn, user } = useAuth();
+  const { data: plans } = useBillingPlans();
+  const limits = plans?.free;
   const { data, isLoading, error, refetch, isRefetching } = useBookmarks();
 
   if (!signedIn) {
@@ -42,7 +44,11 @@ export default function Saved() {
   return (
     <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={isRefetching} onRefresh={refetch} />}>
       <T variant="display" style={{ marginBottom: spacing.xs }}>Saved</T>
-      <T variant="small" color="textSecondary" style={{ marginBottom: spacing.lg }}>Saved articles are downloaded so you can read them offline.</T>
+      <T variant="small" color="textSecondary" style={{ marginBottom: spacing.lg }}>
+        {user?.premium?.active
+          ? 'Saved articles are downloaded so you can read them offline.'
+          : `${data?.total ?? 0} of ${limits?.bookmarks ?? 20} free saves used. Premium adds unlimited saves and offline reading.`}
+      </T>
       {data?.offline ? <OfflineNote message="You’re offline. Showing your saved items." /> : null}
       {isLoading ? <Loading /> : error ? <ErrorView error={error} onRetry={refetch} /> : !data.items.length ? (
         <Empty icon="bookmark-outline" title="Nothing saved yet" message="Tap the bookmark on any article or quiz question to save it for revision." action={<Button title="Browse articles" variant="outline" onPress={() => router.push('/explore')} />} />

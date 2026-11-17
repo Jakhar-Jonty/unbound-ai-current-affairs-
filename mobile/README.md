@@ -14,6 +14,11 @@ React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs 
 - **Forgot password:** emailed 6-digit code, entered in the app (no app links needed)
 - Light and dark mode, push notifications (tapping one opens the quiz), and a forced-update screen driven by the backend's `MIN_APP_VERSION`
 
+- **Premium:** plan comparison and status; on Android and web it opens the secure Razorpay web checkout. Locked content shows an upgrade prompt, and premium is refreshed when you come back from checkout.
+- **Insights (Premium):** weakest subjects with one-tap practice, 8-week chart, accuracy by subject and GS paper, questions to revisit
+- **Sign-in:** email and password with email verification, Google, and Apple (iOS)
+- **Polish:** first-launch intro, loading placeholders, haptic feedback in quizzes, adjustable article text size (Aa), share
+
 People can browse without an account. Taking quizzes, bookmarks and progress need sign-in.
 
 ## Brand colours
@@ -49,7 +54,9 @@ Other commands: `npx expo lint`, `npx expo export` (checks that the Android, iOS
 3. **EAS project.** Run `npx eas-cli@latest init`. This adds `extra.eas.projectId`, which push notifications need. Until then the app skips push registration and logs a warning.
 4. **API URL.** Set `extra.apiUrl` in `app.json` (or `EXPO_PUBLIC_API_URL` in the build profile) to your production API over HTTPS.
 5. **Store links.** Fill in `extra.storeUrl.ios` / `.android` so the "Update required" screen can link to the store.
-6. **Push.** On the server, set `PUSH_ENABLED=true` (and optionally `EXPO_ACCESS_TOKEN`). For iOS, EAS sets up the APNs key during the first `eas build`.
+6. **Google sign-in.** Create OAuth client IDs (web, iOS, Android) in Google Cloud Console, put them in `extra.googleClientIds`, and put all of them in the server's `GOOGLE_CLIENT_IDS`. The button stays hidden until both are set.
+7. **Apple sign-in.** Already enabled in `app.json` (`ios.usesAppleSignIn`). Put the bundle ID in the server's `APPLE_CLIENT_IDS`. Apple requires its option whenever Google sign-in is offered on iOS.
+8. **Push.** On the server, set `PUSH_ENABLED=true` (and optionally `EXPO_ACCESS_TOKEN`). For iOS, EAS sets up the APNs key during the first `eas build`.
 
 Then: `npx eas-cli@latest build --platform android` (or `ios`).
 

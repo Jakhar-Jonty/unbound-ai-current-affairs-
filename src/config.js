@@ -57,6 +57,32 @@ const config = {
     smtpUrl: process.env.SMTP_URL || '',
     from: process.env.MAIL_FROM || 'Unbound <no-reply@example.com>',
   },
+  // Public base URL of this server (used for the premium checkout link), e.g. https://api.example.com
+  publicUrl: (process.env.PUBLIC_URL || '').replace(/\/$/, ''),
+  oauth: {
+    // Comma-separated OAuth client IDs whose ID tokens we accept (web, iOS and Android clients).
+    googleClientIds: (process.env.GOOGLE_CLIENT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean),
+    // Apple: the iOS bundle ID (and the Services ID if you add Apple sign-in on the web).
+    appleClientIds: (process.env.APPLE_CLIENT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean),
+  },
+  premium: {
+    // While false, every feature is unlocked for everyone (use until payments are live).
+    enabled: bool('PREMIUM_ENABLED', false),
+    freeArchiveDays: int('FREE_ARCHIVE_DAYS', 30),
+    freeBookmarks: int('FREE_BOOKMARKS', 20),
+    freePracticePerDay: int('FREE_PRACTICE_PER_DAY', 10),
+    plans: {
+      monthly: { amount: int('PRICE_MONTHLY_PAISE', 4900), period: 'monthly', label: 'Monthly', razorpayPlanId: process.env.RAZORPAY_PLAN_MONTHLY || '', totalCount: 120 },
+      yearly: { amount: int('PRICE_YEARLY_PAISE', 49900), period: 'yearly', label: 'Yearly', razorpayPlanId: process.env.RAZORPAY_PLAN_YEARLY || '', totalCount: 10 },
+    },
+    // Whether the app may open the web checkout. iOS must stay false (App Store rules).
+    purchaseInApp: { android: bool('PREMIUM_PURCHASE_ANDROID', false), ios: false, web: true },
+  },
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keySecret: process.env.RAZORPAY_KEY_SECRET || '',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  },
   push: {
     enabled: bool('PUSH_ENABLED', false),
     expoAccessToken: process.env.EXPO_ACCESS_TOKEN || '',

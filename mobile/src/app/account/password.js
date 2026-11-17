@@ -7,7 +7,8 @@ import Field from '../../components/Field';
 import { Button, Screen, T } from '../../components/ui';
 
 export default function ChangePassword() {
-  const { applySession } = useAuth();
+  const { applySession, user } = useAuth();
+  const hasPassword = user?.hasPassword !== false;
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [error, setError] = useState(null);
@@ -18,7 +19,7 @@ export default function ChangePassword() {
     if (next.length < 8) return setError('Use at least 8 characters for your new password.');
     setBusy(true);
     try {
-      const session = await api('/auth/password/change', { method: 'POST', body: { currentPassword: current, newPassword: next } });
+      const session = await api('/auth/password/change', { method: 'POST', body: { ...(hasPassword ? { currentPassword: current } : {}), newPassword: next } });
       await applySession(session);
       router.back();
     } catch (err) {
@@ -30,11 +31,11 @@ export default function ChangePassword() {
 
   return (
     <Screen edges={[]}>
-      <T color="textSecondary">Changing your password signs you out on your other devices.</T>
-      <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" textContentType="password" />
+      <T color="textSecondary">{hasPassword ? 'Changing your password signs you out on your other devices.' : 'You signed up with Google or Apple. Set a password to also sign in with your email.'}</T>
+      {hasPassword ? <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" textContentType="password" /> : null}
       <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint="At least 8 characters." onSubmitEditing={save} />
       {error ? <T variant="small" color="incorrect" style={{ marginTop: spacing.md }}>{error}</T> : null}
-      <Button title="Change password" onPress={save} loading={busy} disabled={!current || !next} style={{ marginTop: spacing.xl }} />
+      <Button title={hasPassword ? 'Change password' : 'Set password'} onPress={save} loading={busy} disabled={(hasPassword && !current) || !next} style={{ marginTop: spacing.xl }} />
     </Screen>
   );
 }

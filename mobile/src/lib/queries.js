@@ -1,9 +1,10 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { useAuth } from './auth';
-import { cacheArticle, getCachedArticle, getBookmarksSnapshot, saveBookmarksSnapshot, syncPinned } from './offline';
+import { cacheArticle, canUseOffline, getCachedArticle, getBookmarksSnapshot, saveBookmarksSnapshot, syncPinned } from './offline';
 
 const isOffline = (err) => err?.status === 0;
+
 
 const PAGE = 20;
 
@@ -32,7 +33,7 @@ export const useArticle = (id) => useQuery({
   queryFn: async ({ signal }) => {
     try {
       const { article } = await api(`/articles/${id}`, { signal });
-      cacheArticle(article);
+      if (canUseOffline()) cacheArticle(article);
       return article;
     } catch (err) {
       if (!isOffline(err)) throw err;
@@ -88,8 +89,8 @@ export function useBookmarks() {
         const data = await api('/me/bookmarks?limit=50', { signal });
         await saveBookmarksSnapshot(user.id, data);
         const savedArticleIds = data.items.filter((b) => b.itemType === 'article' && b.item).map((b) => String(b.item.id));
-        const missing = await syncPinned(savedArticleIds);
-        // Download saved articles in the background.
+        const missing = canUseOffline() ? await syncPinned(savedArticleIds) : [];
+        // Download saved articles in the background (premium).
         Promise.all(missing.map((aid) => api(`/articles/${aid}`).then((r) => cacheArticle(r.article, { pinned: true })).catch(() => {})));
         return data;
       } catch (err) {
@@ -151,7 +152,7 @@ export function useBookmarkToggle(itemType, itemId) {
     },
     onSuccess: (bookmarkId) => {
       qc.setQueryData(['me', user?.id, 'bookmark-status', itemType, itemId], bookmarkId);
-      if (itemType === 'article' && bookmarkId) {
+      if (itemType === 'article' && bookmarkId && canUseOffline()) {
         const article = qc.getQueryData(['article', itemId]);
         if (article) cacheArticle(article, { pinned: true });
       }
@@ -160,3 +161,7 @@ export function useBookmarkToggle(itemType, itemId) {
   });
   return { bookmarked: !!status.data, toggle: () => toggle.mutate(), busy: toggle.isPending, error: toggle.error };
 }
+
+export const useBillingPlans = () => useQuery({ queryKey: ['billing-plans'], queryFn: () => api('/billing/plans'), staleTime: 10 * 60 * 1000 });
+export const useBillingStatus = () => useMeQuery(['billing-status'], '/billing/status');
+export const useInsights = () => useMeQuery(['insights'], '/me/insights', { retry: (n, err) => err?.status !== 403 && n < 2 });

@@ -3,11 +3,12 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { useAuth } from '../../lib/auth';
-import { shortName } from '../../lib/format';
 import { useProgress, useTaxonomy } from '../../lib/queries';
 import { useTheme, spacing } from '../../theme';
 import { subjectLabel } from '../../components/ArticleCard';
 import SignInPrompt from '../../components/SignInPrompt';
+import VerifyEmailBanner from '../../components/VerifyEmailBanner';
+import { formatDate, shortName } from '../../lib/format';
 import { Button, Card, Divider, ErrorView, Loading, ProgressBar, Screen, SectionTitle, T } from '../../components/ui';
 
 function AccountRow({ icon, label, onPress, danger }) {
@@ -48,7 +49,21 @@ export default function Profile() {
   return (
     <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={isRefetching} onRefresh={refetch} />}>
       <T variant="display">{user.name || 'Profile'}</T>
-      {user.email ? <T color="textSecondary">{user.email}</T> : null}
+      {user.email ? <T color="textSecondary" style={{ marginBottom: spacing.md }}>{user.email}</T> : null}
+      <VerifyEmailBanner />
+
+      <Card onPress={() => router.push('/premium')} accessibilityLabel="Premium" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderColor: c.accent }}>
+        <Ionicons name="sparkles" size={22} color={c.accent} />
+        <View style={{ flex: 1 }}>
+          <T variant="heading">{user.premium?.active && user.premium?.source ? 'Premium' : user.premium?.active ? 'All features unlocked' : 'Upgrade to Premium'}</T>
+          <T variant="small" color="textSecondary">
+            {user.premium?.active && user.premium?.until
+              ? `${user.premium.status === 'cancelled' ? 'Ends' : 'Renews'} ${formatDate(user.premium.until)}`
+              : user.premium?.active ? 'Every feature is free right now' : 'Full archive, unlimited practice, offline reading, insights'}
+          </T>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+      </Card>
 
       <SectionTitle>Your progress</SectionTitle>
       {isLoading ? <Loading /> : error ? <ErrorView error={error} onRetry={refetch} /> : (
@@ -91,6 +106,15 @@ export default function Profile() {
         </>
       )}
 
+      <Card onPress={() => router.push('/insights')} accessibilityLabel="Your insights" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
+        <Ionicons name="analytics-outline" size={22} color={c.text} />
+        <View style={{ flex: 1 }}>
+          <T variant="heading">Your insights</T>
+          <T variant="small" color="textSecondary">Weak topics, trends and questions to revisit</T>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+      </Card>
+
       <SectionTitle>Account</SectionTitle>
       <Card style={{ paddingVertical: spacing.xs }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md }}>
@@ -109,7 +133,7 @@ export default function Profile() {
           />
         </View>
         <View style={{ height: 1, backgroundColor: c.border }} />
-        <AccountRow icon="key-outline" label="Change password" onPress={() => router.push('/account/password')} />
+        <AccountRow icon="key-outline" label={user.hasPassword === false ? 'Set a password' : 'Change password'} onPress={() => router.push('/account/password')} />
         <View style={{ height: 1, backgroundColor: c.border }} />
         <AccountRow icon="trash-outline" label="Delete account" danger onPress={() => router.push('/account/delete')} />
       </Card>

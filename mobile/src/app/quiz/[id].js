@@ -7,6 +7,8 @@ import { useQuiz, useSubmitAttempt } from '../../lib/queries';
 import { optionLetter } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
 import SignInPrompt from '../../components/SignInPrompt';
+import { PremiumGate, isPremiumError } from '../../components/Premium';
+import { tap } from '../../lib/haptics';
 import { Button, Empty, ErrorView, Loading, ProgressBar, Screen, T } from '../../components/ui';
 
 function confirm(title, message, onYes) {
@@ -46,6 +48,7 @@ export default function QuizScreen() {
 
   if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="checkbox-outline" title="Sign in to take the quiz" message="Your score and progress are saved to your account." /></Screen>;
   if (isLoading) return <Loading />;
+  if (isPremiumError(error)) return <Screen edges={[]}><PremiumGate title="From the archive" message={error.message} /></Screen>;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
   if (data.myAttempt) {
     return (
@@ -96,7 +99,7 @@ export default function QuizScreen() {
                 accessibilityRole="radio"
                 accessibilityState={{ checked: selected }}
                 accessibilityLabel={`Option ${optionLetter(i)}: ${opt}`}
-                onPress={() => setAnswers({ ...answers, [q.id]: i })}
+                onPress={() => { tap(); setAnswers({ ...answers, [q.id]: i }); }}
                 style={({ pressed }) => [s.option, { borderColor: selected ? c.accent : c.border, backgroundColor: selected ? c.accentSoft : 'transparent', opacity: pressed ? 0.85 : 1 }]}
               >
                 <View style={[s.letter, { borderColor: selected ? c.accent : c.borderStrong, backgroundColor: selected ? c.accent : 'transparent' }]}>

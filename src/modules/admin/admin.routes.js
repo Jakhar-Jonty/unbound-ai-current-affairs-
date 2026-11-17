@@ -301,9 +301,10 @@ router.post('/notifications', adminOnly, validate(z.object({
 });
 
 // ---------- Users & audit ----------
-router.get('/users', adminOnly, validate(pagination.extend({ role: z.enum(ROLES).optional() }), 'query'), async (req, res) => {
-  const { page, limit, role } = req.valid.query;
-  const filter = role ? { role } : {};
+router.get('/users', adminOnly, validate(pagination.extend({ role: z.enum(ROLES).optional(), q: z.string().trim().max(100).optional() }), 'query'), async (req, res) => {
+  const { page, limit, role, q } = req.valid.query;
+  const escaped = q ? q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
+  const filter = { ...(role ? { role } : {}), ...(escaped ? { email: { $regex: escaped, $options: 'i' } } : {}) };
   const [items, total] = await Promise.all([
     User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     User.countDocuments(filter),
@@ -311,10 +312,21 @@ router.get('/users', adminOnly, validate(pagination.extend({ role: z.enum(ROLES)
   res.json({ items: items.map((u) => ({ ...u.toPublic(), disabled: u.disabled })), page, limit, total });
 });
 
-router.patch('/users/:id', adminOnly, validate(z.object({ role: z.enum(ROLES).optional(), disabled: z.boolean().optional() })), async (req, res) => {
+router.patch('/users/:id', adminOnly, validate(z.object({
+  role: z.enum(ROLES).optional(),
+  disabled: z.boolean().optional(),
+  // Complimentary premium until this date (null removes it).
+  premiumUntil: z.coerce.date().nullable().optional(),
+})), async (req, res) => {
   const id = idParam(req);
-  if (String(req.user._id) === id) throw badRequest('You cannot change your own role or status');
-  const user = await User.findByIdAndUpdate(id, { $set: req.valid.body }, { returnDocument: 'after' });
+  const { premiumUntil, ...rest } = req.valid.body;
+  if (String(req.user._id) === id && (rest.role || rest.disabled !== undefined)) throw badRequest('You cannot change your own role or status');
+  const set = { ...rest };
+  if (premiumUntil !== undefined) {
+    set.premium = premiumUntil ? { plan: 'complimentary', until: premiumUntil, source: 'admin', status: 'active' } : { status: 'ended' };
+  }
+  const user = await User.findByIdAndUpdate(id, { $set: set }, { returnDocument: 'after' });
+  if (user && premiumUntil === null) await require('../billing/billing.service').syncUserPremium(user._id);
   if (!user) throw notFound('User not found');
   await audit(req, 'user.update', 'User', user._id, req.valid.body);
   res.json({ user: { ...user.toPublic(), disabled: user.disabled } });

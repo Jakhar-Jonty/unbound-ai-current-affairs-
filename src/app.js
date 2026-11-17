@@ -39,7 +39,8 @@ function createApp() {
 
   app.use(helmet());
   app.use(cors({ origin: config.corsOrigins.length ? config.corsOrigins : false }));
-  app.use(express.json({ limit: '200kb' }));
+  // Keep the raw body for webhook signature checks.
+  app.use(express.json({ limit: '200kb', verify: (req, _res, buf) => { if (req.originalUrl.startsWith('/api/v1/billing/webhook')) req.rawBody = buf; } }));
 
   app.get('/health', (_req, res) => {
     const dbUp = mongoose.connection.readyState === 1;
@@ -49,7 +50,13 @@ function createApp() {
   const v1 = express.Router();
   // Lets the mobile app force an update when the API needs a newer client.
   v1.get('/meta', (_req, res) => {
-    res.json({ minAppVersion: config.app.minVersion, latestAppVersion: config.app.latestVersion, timezone: config.timezone });
+    res.json({
+      minAppVersion: config.app.minVersion,
+      latestAppVersion: config.app.latestVersion,
+      timezone: config.timezone,
+      premium: { enabled: config.premium.enabled },
+      signIn: { google: config.oauth.googleClientIds.length > 0, apple: config.oauth.appleClientIds.length > 0 },
+    });
   });
   v1.use('/auth', require('./modules/users/auth.routes'));
   v1.use(require('./modules/content/content.routes'));
@@ -58,8 +65,25 @@ function createApp() {
   v1.use(require('./modules/notifications/notification.routes'));
   v1.use(require('./modules/leaderboard/leaderboard.routes'));
   v1.use(require('./modules/practice/practice.routes'));
+  v1.use(require('./modules/billing/billing.routes'));
+  v1.use(require('./modules/insights/insights.routes'));
   v1.use('/admin', require('./modules/admin/admin.routes'));
   app.use('/api/v1', v1);
+
+  // Premium checkout page (web). Razorpay Checkout needs its script and frames allowed.
+  app.use('/premium', (_req, res, next) => {
+    res.setHeader('Content-Security-Policy', [
+      "default-src 'self'",
+      "script-src 'self' https://checkout.razorpay.com",
+      "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+      "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
+      "img-src 'self' data: https:",
+      "style-src 'self' 'unsafe-inline'",
+      "frame-ancestors 'none'",
+    ].join('; '));
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    next();
+  }, express.static(path.join(__dirname, '..', 'public', 'premium'), { index: 'index.html' }));
 
   // Admin panel (static, talks to /api/v1/admin).
   app.use('/admin', express.static(path.join(__dirname, '..', 'public', 'admin'), { index: 'index.html' }));
