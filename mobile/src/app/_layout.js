@@ -15,6 +15,10 @@ import { compareVersions } from '../lib/format';
 import { useTheme } from '../theme';
 import { Empty, Button } from '../components/ui';
 
+// Tabs sit under every other screen, so modals (sign-in, Premium) open over them
+// even when the app is opened straight on one of those routes.
+export const unstable_settings = { anchor: '(tabs)' };
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
