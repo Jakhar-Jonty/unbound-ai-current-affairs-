@@ -244,6 +244,8 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 
 ## Deploying to a single Linux VPS
 
+Step-by-step commands for Ubuntu (server hardening, Node, pm2, nginx, HTTPS, updates) are in [docs/DEPLOY.md](docs/DEPLOY.md). In short:
+
 1. **MongoDB.** MongoDB Atlas is the simplest choice: it handles backups and failover. If you self-host, enable auth, bind to `127.0.0.1` and **never expose port 27017**. Set up daily off-site backups (`mongodump --gzip --archive` to object storage) and **test a restore**.
 2. **App:** `npm ci --omit=dev`, fill in `.env` (a strong `JWT_SECRET`, an AI key, `SMTP_URL` for password-reset emails), then `npm run seed:admin`.
 3. **Processes:** `pm2 start ecosystem.config.js && pm2 save && pm2 startup`. This runs `ca-api` and `ca-worker` separately.

@@ -2,7 +2,8 @@
 // The API and the pipeline worker run as separate processes from the same code.
 module.exports = {
   apps: [
-    { name: 'ca-api', script: 'src/server.js', instances: 1, env: { NODE_ENV: 'production' }, max_memory_restart: '400M' },
-    { name: 'ca-worker', script: 'src/worker.js', instances: 1, env: { NODE_ENV: 'production' }, max_memory_restart: '400M', kill_timeout: 65000 },
+    // cwd: so .env is found however pm2 is started (including after a reboot).
+    { name: 'ca-api', script: 'src/server.js', cwd: __dirname, instances: 1, env: { NODE_ENV: 'production' }, max_memory_restart: '400M' },
+    { name: 'ca-worker', script: 'src/worker.js', cwd: __dirname, instances: 1, env: { NODE_ENV: 'production' }, max_memory_restart: '400M', kill_timeout: 65000 },
   ],
 };
