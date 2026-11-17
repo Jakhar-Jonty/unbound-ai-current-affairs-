@@ -133,6 +133,7 @@ cp .env.example .env            # AI_PROVIDER=mock needs no API key
 docker compose up -d mongo      # or point MONGODB_URI at your own MongoDB
 
 ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-long-password' npm run seed:admin
+npm run seed:demo               # optional: 5 published explainers, a quiz and a test user (no AI calls)
 
 npm run dev                     # API on http://localhost:4000, admin panel at /admin
 npm run worker                  # scheduled pipeline (in another terminal)
@@ -142,6 +143,8 @@ npm run job -- ingest-feeds
 npm run job -- generate-content
 npm run job -- daily-quiz
 ```
+
+`seed:demo` loads hand-written explainers on settled topics (MPC, GST Council, Fundamental Duties, right to privacy, Ramsar), published through the normal approval rules, plus a topic quiz and a verified test user, `student@example.com`. The password is printed once; set `DEMO_PASSWORD` to choose it. Running it again adds nothing. `npm run seed:demo -- --reset` removes it all, and keeps any quiz that also holds real questions. It refuses to run with `NODE_ENV=production`.
 
 Tests use a real MongoDB, with a separate throwaway database per test file:
 

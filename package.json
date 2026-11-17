@@ -13,6 +13,7 @@
     "worker": "node src/worker.js",
     "dev": "node --watch src/server.js",
     "seed:admin": "node scripts/create-admin.js",
+    "seed:demo": "node scripts/seed-demo.js",
     "job": "node scripts/run-job.js",
     "test": "node --test test/*.test.js",
     "razorpay:plans": "node scripts/razorpay-plans.js"
