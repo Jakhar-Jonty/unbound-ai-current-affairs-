@@ -29,4 +29,11 @@ function weekRange(date = new Date(), timeZone = config.timezone) {
   return { start, end, startDate: localDateString(start, timeZone) };
 }
 
-module.exports = { localDateString, tzOffsetMinutes, weekRange };
+/** Midnight today in the app timezone, as a UTC Date. */
+function dayStart(date = new Date(), timeZone = config.timezone) {
+  const today = localDateString(date, timeZone);
+  const midnightUtc = Date.parse(`${today}T00:00:00Z`);
+  return new Date(midnightUtc - tzOffsetMinutes(new Date(midnightUtc), timeZone) * 60000);
+}
+
+module.exports = { localDateString, tzOffsetMinutes, weekRange, dayStart };

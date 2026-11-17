@@ -16,6 +16,8 @@ async function resolveUser(req) {
   const user = await User.findById(payload.sub);
   if (!user || user.disabled) throw unauthorized('Account not found or disabled');
   if ((payload.tv || 0) !== (user.tokenVersion || 0)) throw unauthorized('Your session has ended. Please sign in again.');
+  // Checkout-link tokens only work for billing.
+  if (payload.scope === 'checkout' && !req.originalUrl.startsWith('/api/v1/billing/')) throw unauthorized('This link only works for checkout');
   return user;
 }
 

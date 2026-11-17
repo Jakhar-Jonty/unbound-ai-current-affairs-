@@ -7,11 +7,12 @@ const { requireAuth, optionalAuth } = require('../users/auth.middleware');
 const { Quiz } = require('./quiz.model');
 const { Attempt } = require('./attempt.model');
 const svc = require('./quiz.service');
+const { isArchive, isPremium, premiumRequired } = require('../billing/entitlements');
 
 const router = express.Router();
 
 function quizSummary(q) {
-  return { id: q._id, type: q.type, date: q.date, title: q.title, questionCount: q.questions.length, publishedAt: q.publishedAt };
+  return { id: q._id, type: q.type, date: q.date, title: q.title, questionCount: q.questions.length, publishedAt: q.publishedAt, premium: isArchive(q.publishedAt) };
 }
 
 router.get('/quizzes', validate(pagination.extend({ type: z.enum(['daily', 'topic', 'custom']).optional() }), 'query'), async (req, res) => {
@@ -31,6 +32,8 @@ async function sendQuiz(req, res, quizId) {
     const a = await Attempt.findOne({ user: req.user._id, quiz: quiz._id }).select('_id score total submittedAt').lean();
     if (a) myAttempt = { id: a._id, score: a.score, total: a.total, submittedAt: a.submittedAt };
   }
+  // Old quizzes are premium, but your own past attempts stay reachable.
+  if (isArchive(quiz.publishedAt) && !isPremium(req.user) && !myAttempt) throw premiumRequired('archive');
   res.json({ quiz: { ...quizSummary(quiz), questionCount: questions.length }, questions: questions.map(svc.toPlayable), myAttempt });
 }
 
@@ -60,6 +63,8 @@ const attemptSchema = z.object({
 
 router.post('/quizzes/:id/attempts', requireAuth, validate(attemptSchema), async (req, res) => {
   objectId.parse(req.params.id);
+  const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();
+  if (quiz && isArchive(quiz.publishedAt) && !isPremium(req.user)) throw premiumRequired('archive');
   const attempt = await svc.submitAttempt({ userId: req.user._id, quizId: req.params.id, ...req.valid.body });
   res.status(201).json({ result: await svc.attemptResult(attempt) });
 });

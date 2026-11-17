@@ -1,0 +1,23 @@
+:root { --bg: #F5F2EC; --text: #151515; --muted: #6A6A6A; --line: rgba(21,21,21,.14); --accent: #FF7928; --ok: #2E7D4F; --bad: #B42318; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+@media (prefers-color-scheme: dark) { :root { --bg: #151515; --text: #F5F2EC; --muted: #8F8F8F; --line: rgba(245,242,236,.16); --ok: #5FBF8A; --bad: #FF7B6E; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+main { max-width: 520px; margin: 0 auto; padding: 32px 16px 48px; }
+h1 { font-size: 30px; line-height: 1.15; margin: 0 0 8px; } h2 { font-size: 18px; margin: 24px 0 8px; }
+.muted { color: var(--muted); }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .04em; font-size: 13px; margin-bottom: 24px; }
+.brand::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+ul.features { list-style: none; padding: 0; margin: 16px 0; } ul.features li { padding: 8px 0 8px 28px; position: relative; border-bottom: 1px solid var(--line); }
+ul.features li::before { content: "✓"; position: absolute; left: 4px; color: var(--accent); font-weight: 800; }
+.plans { display: grid; gap: 12px; margin: 20px 0; }
+.plan { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; cursor: pointer; background: transparent; color: inherit; font: inherit; text-align: left; width: 100%; }
+.plan[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,121,40,.2); }
+.plan .price { font-size: 22px; font-weight: 800; } .save { background: var(--accent); color: #151515; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
+button.primary { width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--accent); color: #151515; font: inherit; font-weight: 700; font-size: 17px; cursor: pointer; }
+button.link { background: none; border: 0; color: inherit; text-decoration: underline; font: inherit; cursor: pointer; padding: 8px 0; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+input { width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: inherit; margin: 4px 0 12px; }
+label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 16px 0; }
+.error { color: var(--bad); } .ok { color: var(--ok); font-weight: 600; }
+.fine { font-size: 13px; color: var(--muted); margin-top: 16px; }

@@ -40,3 +40,4 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--field); p
 #toast { position: fixed; bottom: 16px; right: 16px; max-width: 360px; }
 #toast div { background: var(--text); color: var(--bg); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 6px; margin-top: 8px; }
 .login { max-width: 360px; margin: 60px auto; }
+.panel.notice { border-left: 4px solid var(--accent); }

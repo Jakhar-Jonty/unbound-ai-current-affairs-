@@ -1,4 +1,5 @@
-import { Pressable } from 'react-native';
+import { useEffect } from 'react';
+import { Alert, Platform, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../lib/auth';
@@ -8,7 +9,20 @@ import { useTheme } from '../theme';
 export default function BookmarkButton({ itemType, itemId, size = 24 }) {
   const c = useTheme();
   const { signedIn } = useAuth();
-  const { bookmarked, toggle, busy } = useBookmarkToggle(itemType, itemId);
+  const { bookmarked, toggle, busy, error } = useBookmarkToggle(itemType, itemId);
+
+  // Free accounts have a saved-items limit: offer Premium when it's reached.
+  useEffect(() => {
+    if (error?.code !== 'premium_required') return;
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(`${error.message}\n\nSee Premium?`)) router.push('/premium');
+      return;
+    }
+    Alert.alert('Saved items limit reached', error.message, [
+      { text: 'Not now', style: 'cancel' },
+      { text: 'See Premium', onPress: () => router.push('/premium') },
+    ]);
+  }, [error]);
   return (
     <Pressable
       accessibilityRole="button"

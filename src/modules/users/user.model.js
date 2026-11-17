@@ -7,7 +7,23 @@ const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     name: { type: String, required: true, trim: true, maxlength: 100 },
-    passwordHash: { type: String, required: true, select: false },
+    // Empty for accounts that only use Google/Apple sign-in.
+    passwordHash: { type: String, select: false },
+    emailVerified: { type: Boolean, default: false },
+    // False for Google/Apple-only accounts (older accounts without the field all have passwords).
+    hasPassword: { type: Boolean },
+    providers: {
+      google: { type: String, index: { unique: true, sparse: true } },
+      apple: { type: String, index: { unique: true, sparse: true } },
+    },
+    // Premium access. `until` is the end of the paid period; access ends then unless renewed.
+    premium: {
+      plan: { type: String, enum: ['monthly', 'yearly', 'complimentary'] },
+      until: Date,
+      source: { type: String, enum: ['razorpay', 'admin'] },
+      status: String, // active | cancelled (runs to period end) | halted | ended
+      razorpaySubscriptionId: String,
+    },
     role: { type: String, enum: ROLES, default: 'user', index: true },
     disabled: { type: Boolean, default: false },
     // Bumped on password change/reset so tokens issued earlier stop working.
@@ -20,7 +36,25 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.methods.toPublic = function toPublic() {
-  return { id: this._id, email: this.email, name: this.name, role: this.role, showOnLeaderboard: this.showOnLeaderboard !== false, createdAt: this.createdAt };
+  const { isPremium } = require('../billing/entitlements');
+  return {
+    id: this._id,
+    email: this.email,
+    name: this.name,
+    role: this.role,
+    emailVerified: !!this.emailVerified,
+    hasPassword: this.hasPassword !== false,
+    signInMethods: [...(this.hasPassword !== false ? ['password'] : []), ...['google', 'apple'].filter((k) => this.providers?.[k])],
+    showOnLeaderboard: this.showOnLeaderboard !== false,
+    premium: {
+      active: isPremium(this),
+      plan: this.premium?.plan || null,
+      until: this.premium?.until || null,
+      status: this.premium?.status || null,
+      source: this.premium?.source || null,
+    },
+    createdAt: this.createdAt,
+  };
 };
 
 module.exports = { User: mongoose.model('User', userSchema), ROLES };

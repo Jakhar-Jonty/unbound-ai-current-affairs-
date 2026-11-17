@@ -22,7 +22,7 @@ async function register({ email, name, password, role = 'user' }) {
   const existing = await User.exists({ email: email.toLowerCase() });
   if (existing) throw conflict('An account with this email already exists');
   const passwordHash = await hashPassword(password);
-  const user = await User.create({ email, name, passwordHash, role });
+  const user = await User.create({ email, name, passwordHash, role, hasPassword: true });
   return { user, token: signToken(user) };
 }
 
@@ -43,6 +43,7 @@ async function hashPassword(password) {
 
 async function checkPassword(user, password) {
   const withHash = user.passwordHash ? user : await User.findById(user._id).select('+passwordHash');
+  if (!withHash?.passwordHash) return false; // Google/Apple-only account.
   return bcrypt.compare(password, withHash.passwordHash);
 }
 
@@ -51,7 +52,7 @@ async function setPassword(user, password) {
   const passwordHash = await hashPassword(password);
   const updated = await User.findByIdAndUpdate(
     user._id,
-    { $set: { passwordHash }, $inc: { tokenVersion: 1 } },
+    { $set: { passwordHash, hasPassword: true }, $inc: { tokenVersion: 1 } },
     { returnDocument: 'after' },
   );
   return { user: updated, token: signToken(updated) };

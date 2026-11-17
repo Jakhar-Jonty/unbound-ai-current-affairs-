@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../../lib/auth';
 import { useLeaderboard, useMyAttempts, usePracticeSubjects, useProgress, useQuizzes, useTaxonomy } from '../../lib/queries';
 import { subjectLabel } from '../../components/ArticleCard';
+import { PremiumBadge } from '../../components/Premium';
 import { formatDate } from '../../lib/format';
 import { useTheme, spacing } from '../../theme';
 import ListScreen from '../../components/ListScreen';
@@ -95,6 +96,7 @@ export default function Quizzes() {
               <T variant="heading">{item.date ? formatDate(item.date) : item.title}</T>
               <T variant="small" color="textSecondary">{item.questionCount} questions</T>
             </View>
+            {!attempt ? <PremiumBadge locked={item.premium} /> : null}
             {attempt ? (
               <T variant="heading">{attempt.score}/{attempt.total}</T>
             ) : (

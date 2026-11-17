@@ -7,6 +7,8 @@ const { Bookmark } = require('./bookmark.model');
 const { Article } = require('../content/article.model');
 const { Question } = require('../quiz/question.model');
 const { toListItem } = require('../content/content.service');
+const config = require('../../config');
+const { isPremium, premiumRequired } = require('../billing/entitlements');
 
 const router = express.Router();
 router.use('/me/bookmarks', requireAuth);
@@ -58,6 +60,13 @@ router.post('/me/bookmarks', validate(createSchema), async (req, res) => {
   const [modelName, Model] = MODELS[itemType];
   const exists = await Model.exists({ _id: itemId, status: { $in: VISIBLE[itemType] } });
   if (!exists) throw notFound(`${modelName} not found`);
+  if (!isPremium(req.user)) {
+    const [count, already] = await Promise.all([
+      Bookmark.countDocuments({ user: req.user._id }),
+      Bookmark.exists({ user: req.user._id, itemType, item: itemId }),
+    ]);
+    if (!already && count >= config.premium.freeBookmarks) throw premiumRequired('bookmarks');
+  }
   const bookmark = await Bookmark.findOneAndUpdate(
     { user: req.user._id, itemType, item: itemId },
     { $setOnInsert: { itemModel: modelName }, ...(note !== undefined ? { $set: { note } } : {}) },

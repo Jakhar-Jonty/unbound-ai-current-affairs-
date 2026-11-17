@@ -3,7 +3,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { setupDb, teardownDb, clearDb, http, makeUser } = require('./helpers');
 const { outbox } = require('../src/lib/mailer');
-const { PasswordReset } = require('../src/modules/users/passwordReset');
+const { OneTimeCode } = require('../src/modules/users/codes');
 const { User } = require('../src/modules/users/user.model');
 const { Attempt } = require('../src/modules/quiz/attempt.model');
 const { Bookmark } = require('../src/modules/bookmarks/bookmark.model');
@@ -19,6 +19,8 @@ const codeFrom = (mail) => mail.subject.match(/^(\d{6})/)[1];
 
 async function signup(email = 'reset@example.com', password = 'old-password-1') {
   const r = await http().post('/api/v1/auth/register').send({ email, name: 'Reset User', password });
+  await new Promise((res) => { setTimeout(res, 50); });
+  outbox.length = 0; // Drop the sign-up verification email.
   return r.body;
 }
 
@@ -32,7 +34,7 @@ test('forgot password emails a code and never reveals whether the email exists',
   assert.equal(r.status, 202);
   assert.equal(outbox.length, 1);
   assert.equal(outbox[0].to, 'reset@example.com');
-  const stored = await PasswordReset.findOne();
+  const stored = await OneTimeCode.findOne({ purpose: 'password_reset' });
   assert.notEqual(stored.codeHash, codeFrom(outbox[0]), 'the code is stored hashed');
 
   await http().post('/api/v1/auth/password/forgot').send({ email: 'reset@example.com' });

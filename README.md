@@ -45,6 +45,51 @@ AI-generated content is the main risk in a current affairs product, so the pipel
 - **Past scores stay fixed.** Quiz attempts store the answer key and question version at the time of the attempt. A later answer-key fix is flagged on the result screen but doesn't change the past score.
 - **Audit log.** Every editorial and admin action is recorded with who did it and when.
 
+### Story grouping
+
+Several outlets usually report the same event. The pipeline groups them so editors review each story once, and the explainer draws on every report:
+
+1. **When news is collected**, each new item is compared with items from the last 72 hours (`src/modules/pipeline/similarity.js`). It uses word-overlap scoring (TF-IDF cosine) on headline and summary and runs locally, so it costs nothing and works with any AI provider. Close matches share a `storyKey`.
+2. **When articles are written**, all queued items in a story are sent to the AI together (up to 4, official sources such as PIB, ministries, RBI and courts first). The prompt tells the model to prefer official sources and to flag any disagreement between outlets as a fact to verify.
+3. **Coverage arriving later** is added as an extra source (marked "added later") while the article is still in review. Published, retracted and rejected stories are never changed or brought back by the pipeline.
+4. **Missed duplicates.** The threshold is deliberately conservative, because blending two different stories is worse than missing a duplicate. Each article in review shows "Possible duplicates" in the admin panel; merging moves sources, flagged facts and questions into the other article, resets fact confirmations, and rejects the duplicate with a link to where it went.
+
+### Free and Premium
+
+| | Free | Premium (₹49/month or ₹499/year) |
+|---|---|---|
+| Daily articles and quizzes | Last 30 days | Full archive |
+| Weekly leaderboard | ✓ | ✓ |
+| Practice by subject | 10 questions a day | Unlimited |
+| Saved articles and questions | 20 | Unlimited |
+| Offline reading | – | ✓ |
+| Weak-topic insights | – | ✓ |
+| AI tutor, audio briefings | – | When they launch |
+
+- Limits are enforced on the server (`src/modules/billing/entitlements.js`) and set in `.env`. Limited endpoints return `403` with `error.code = "premium_required"` and `details.feature`, and the app shows an upgrade prompt.
+- **`PREMIUM_ENABLED=false` (the default) unlocks everything for everyone.** Turn it on once payments work.
+- Admins can give complimentary Premium from the admin panel's **Users** tab.
+
+**Payments (Razorpay subscriptions).** People pay on a web checkout page (`/premium`) using UPI, card or net banking:
+1. The app asks for a 15-minute sign-in link (`POST /billing/checkout-link`). The token travels in the URL fragment, so it never reaches server logs, and it only works for `/billing` endpoints.
+2. The page creates a Razorpay subscription and opens Razorpay Checkout.
+3. After payment, `POST /billing/verify` checks Razorpay's signature (HMAC of `payment_id|subscription_id`) and grants access for the paid period.
+4. Webhooks (`POST /billing/webhook`, signature-checked, each event handled once) keep access in sync with renewals, cancellations and failed payments. A *halted* subscription (renewals failing) ends access immediately; a *cancelled* one keeps access until the paid period ends.
+5. Deleting an account cancels its subscription straight away.
+
+**Store rules.** Apple doesn't allow digital subscriptions sold outside in-app purchase, or links to them, so the iOS app never shows a buy button. Google Play has the same rule unless you're enrolled in its *user choice billing* programme (India), so the Android buy button stays off until you set `PREMIUM_PURCHASE_ANDROID=true`. The web page works for anyone, any time.
+
+**Setting up Razorpay**
+1. Put the API keys (test mode first) in `.env`: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`.
+2. Run `npm run razorpay:plans` and copy the two plan IDs it prints into `.env`.
+3. In the Razorpay dashboard, add a webhook to `https://<your server>/api/v1/billing/webhook` for the `subscription.*` events (`activated`, `charged`, `pending`, `halted`, `cancelled`, `completed`, `paused`, `resumed`), and put its secret in `RAZORPAY_WEBHOOK_SECRET`.
+4. Set `PUBLIC_URL` and `PREMIUM_ENABLED=true`.
+
+### Sign-in
+
+- **Email and password.** Accounts get a 6-digit verification code by email on sign-up (shared code system with password reset: hashed, 15 minutes, single use, 5 tries). A verified email is needed before buying Premium, because receipts go there.
+- **Google and Apple.** The app sends the provider's ID token; the server checks its signature against Google's or Apple's public keys, plus the issuer and audience (`GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`). A provider-verified email that matches an existing account is linked to it. Google/Apple-only accounts can set a password later, and confirm account deletion by typing DELETE.
+
 ### Reliable background jobs
 
 - The worker runs as a **separate process** from the API, so long AI batches don't slow down requests.
@@ -131,6 +176,9 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/auth/register` | `{ email, name, password }` → `{ user, token }` |
 | POST | `/auth/login` | `{ email, password }` → `{ user, token }` |
 | GET | `/auth/me` | Current user |
+| POST | `/auth/google` | `{ idToken }` → `{ user, token }` |
+| POST | `/auth/apple` | `{ identityToken, fullName? }` → `{ user, token }` |
+| POST | `/auth/email/send` · `/auth/email/verify` | Send a verification code / verify with `{ code }` |
 | POST | `/auth/password/forgot` | `{ email }` → always 202; emails a 6-digit code (15 min, single use, 5 tries) |
 | POST | `/auth/password/reset` | `{ email, code, password }` → `{ user, token }`; signs out other sessions |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` → `{ user, token }`; signs out other sessions |
@@ -153,6 +201,12 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/practice/subjects` | Published question count per subject |
 | GET | `/practice/questions` | `?subject=&count=10`: random set, favouring questions not yet answered correctly |
 | POST | `/practice/answers` | `{ questionId, selectedIndex }` → correct answer and explanation immediately |
+| GET | `/me/insights` | Premium: weak subjects, trends, accuracy by GS paper, questions to revisit (last 90 days) |
+| GET | `/billing/plans` | Plans, prices, free limits, where purchase is available |
+| GET | `/billing/status` | Your premium status, limits and subscription |
+| POST | `/billing/checkout-link` | 15-minute signed-in link to the web checkout |
+| POST | `/billing/subscriptions` · `/billing/verify` · `/billing/cancel` | Used by the checkout page |
+| POST | `/billing/webhook` | Razorpay webhooks (signature-checked) |
 | POST | `/me/devices` | Register an Expo push token `{ token, platform, appVersion? }` |
 | DELETE | `/me/devices` | Unregister `{ token }` (call on sign-out) |
 
@@ -163,6 +217,8 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/admin/dashboard` | Counts by status, last run of each job |
 | GET | `/admin/articles` | All articles, `?status=in_review` |
 | GET | `/admin/articles/:id` | Full detail with questions, revisions, history and raw AI output |
+| GET | `/admin/articles/:id/similar` | Up to 5 recent articles that look like the same event |
+| POST | `/admin/articles/:id/merge` | `{ intoId }` merges this article (in review) into another one in review |
 | POST | `/admin/articles` | Write an article by hand (goes to review) |
 | PATCH | `/admin/articles/:id` | Edit; published articles need `correctionNote` |
 | POST | `/admin/articles/:id/approve` | `{ confirmedFacts: [indexes], notes? }` publishes the article and its questions |
@@ -178,7 +234,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/admin/jobs/runs` | Job run history |
 | POST | `/admin/jobs/:name/run` ★ | Run a job now (`?wait=true` to wait for the result) |
 | POST | `/admin/notifications` ★ | Send a push notification to all devices |
-| GET/PATCH | `/admin/users[/:id]` ★ | List users, change role or disable |
+| GET/PATCH | `/admin/users[/:id]` ★ | List/search users; change role, disable, or give complimentary Premium (`premiumUntil`) |
 | GET | `/admin/audit` | Audit log |
 
 ## Deploying to a single Linux VPS
@@ -195,7 +251,5 @@ The plan's next step is "background workers + Redis". Jobs already sit behind `r
 
 ## Not in this release
 
-- **Grouping related stories.** Two outlets covering the same event become two review items unless they share a URL. Editors can reject the duplicate.
 - **Provider batch APIs.** The pipeline processes items in small concurrent batches. Moving overnight runs to a provider's batch API (about 50% cheaper on Claude and OpenAI) is a possible cost optimisation.
-- **Email verification and social login.**
 - From the later releases in the plan: AI tutor, audio briefings, leaderboards and study plans. Per-question, per-subject attempt data is already being recorded, so study plans and leaderboards can use history from day one.

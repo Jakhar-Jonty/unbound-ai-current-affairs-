@@ -9,6 +9,16 @@ const { Attempt } = require('../quiz/attempt.model');
 const { toPlayable } = require('../quiz/quiz.service');
 const { PracticeAnswer } = require('./practice.model');
 const { SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const config = require('../../config');
+const { isPremium, premiumRequired } = require('../billing/entitlements');
+const { dayStart } = require('../../lib/dates');
+
+/** Free practice answers left today (IST), or null for premium users. */
+async function remainingToday(user) {
+  if (isPremium(user)) return null;
+  const used = await PracticeAnswer.countDocuments({ user: user._id, answeredAt: { $gte: dayStart() } });
+  return Math.max(0, config.premium.freePracticePerDay - used);
+}
 
 const router = express.Router();
 router.use('/practice', requireAuth);
@@ -33,6 +43,8 @@ router.get('/practice/questions', validate(z.object({
 }), 'query'), async (req, res) => {
   const { subject, count } = req.valid.query;
   const uid = req.user._id;
+  const remaining = await remainingToday(req.user);
+  if (remaining === 0) throw premiumRequired('practice');
   const [quizCorrect, practiceCorrect] = await Promise.all([
     Attempt.aggregate([{ $match: { user: uid } }, { $unwind: '$answers' }, { $match: { 'answers.isCorrect': true } }, { $group: { _id: '$answers.question' } }]),
     PracticeAnswer.distinct('question', { user: uid, isCorrect: true }),
@@ -45,12 +57,14 @@ router.get('/practice/questions', validate(z.object({
     const more = await Question.aggregate([{ $match: { ...base, _id: { $in: mastered } } }, { $sample: { size: count - fresh.length } }]);
     picked = [...fresh, ...more];
   }
-  res.json({ subject, questions: picked.map(toPlayable), newQuestions: fresh.length });
+  res.json({ subject, questions: picked.map(toPlayable), newQuestions: fresh.length, remainingToday: remaining });
 });
 
 // Checks one answer and returns the explanation straight away.
 router.post('/practice/answers', validate(z.object({ questionId: objectId, selectedIndex: z.number().int().min(0) })), async (req, res) => {
   const { questionId, selectedIndex } = req.valid.body;
+  const remaining = await remainingToday(req.user);
+  if (remaining === 0) throw premiumRequired('practice');
   const q = await Question.findOne({ _id: questionId, status: 'published' }).lean();
   if (!q) throw notFound('Question not found');
   if (selectedIndex >= q.options.length) throw badRequest('Invalid option');
@@ -59,7 +73,7 @@ router.post('/practice/answers', validate(z.object({ questionId: objectId, selec
     user: req.user._id, question: q._id, questionVersion: q.version, selectedIndex, isCorrect,
     subjects: q.tags?.subjects || [], gsPaper: q.tags?.gsPaper,
   });
-  res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation: q.explanation, article: q.article });
+  res.status(201).json({ isCorrect, correctIndex: q.correctIndex, explanation: q.explanation, article: q.article, remainingToday: remaining === null ? null : remaining - 1 });
 });
 
 router.get('/practice/stats', async (req, res) => {

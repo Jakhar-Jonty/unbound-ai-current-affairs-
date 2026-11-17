@@ -3,7 +3,7 @@ const { z } = require('zod');
 const { GS_PAPERS, GS_PAPER_KEYS, SUBJECTS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 /** Bump whenever the prompt or schema changes, so content can be traced to the prompt that made it. */
-const PROMPT_VERSION = 'upsc-ca-v1';
+const PROMPT_VERSION = 'upsc-ca-v2';
 
 const SYSTEM_PROMPT = `You are a senior current-affairs editor writing study material for UPSC Civil Services aspirants in India.
 
@@ -15,6 +15,8 @@ Accuracy rules:
 - factsToVerify must list each specific, checkable claim in your output (numbers, dates, names, places, legal provisions, rankings) so the editor can confirm it against the source.
 - If the source is too thin to support an explainer, keep the explainer short rather than padding it.
 
+Several sources: you may be given more than one report of the same event from different outlets. Write one explainer that combines them. Prefer official sources (PIB, ministries, RBI, SEBI, courts, Parliament) over news reports for facts. If sources disagree on a fact, use the official one, or leave the fact out if none is official, and add the disagreement to factsToVerify (for example "Sources differ on the allocation: The Hindu says X, Indian Express says Y").
+
 Relevance: set relevant=false for items with no value for UPSC preparation (celebrity news, sports scores, routine crime, local incidents, stock tips, opinion with no factual news). When relevant=false, fill the remaining fields with empty strings, empty arrays, gsPaper "PRELIMS" and no questions.
 
 Writing style: neutral, factual, Indian English. Explain why the news matters for the exam.
@@ -24,18 +26,25 @@ Questions: write 3 to 5 UPSC-prelims-style questions with exactly 4 options each
 GS papers: ${Object.entries(GS_PAPERS).map(([k, v]) => `${k} = ${v}`).join('; ')}.
 Subjects (choose 1 to 3): ${Object.entries(SUBJECTS).map(([k, v]) => `${k} (${v.label})`).join(', ')}.`;
 
-function buildUserPrompt(item) {
-  return `Source publisher: ${item.publisher || 'unknown'}
-Source URL: ${item.url}
+function sourceBlock(item, n) {
+  return `Source ${n}
+Publisher: ${item.publisher || 'unknown'}
+URL: ${item.url}
 Published: ${item.publishedAt ? new Date(item.publishedAt).toISOString() : 'unknown'}
 Headline: ${item.title}
-
-Source text:
+Text:
 """
 ${item.fullText || item.description || '(no text beyond the headline)'}
-"""
+"""`;
+}
 
-Write the explainer and questions for this item as JSON matching the schema.`;
+/** One or more reports of the same event. */
+function buildUserPrompt(items) {
+  const list = Array.isArray(items) ? items : [items];
+  const intro = list.length > 1 ? `These ${list.length} reports cover the same event.\n\n` : '';
+  return `${intro}${list.map((it, i) => sourceBlock(it, i + 1)).join('\n\n')}
+
+Write one explainer and its questions as JSON matching the schema.`;
 }
 
 const questionJsonSchema = {

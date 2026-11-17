@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../lib/auth';
 import { spacing } from '../theme';
 import Field from './Field';
+import SocialSignIn from './SocialSignIn';
 import { Button, Screen, T } from './ui';
 
 export default function AuthForm({ mode }) {
@@ -41,6 +42,7 @@ export default function AuthForm({ mode }) {
         <T color="textSecondary" style={{ marginTop: spacing.sm }}>
           {isRegister ? 'Daily current affairs, quizzes and progress tracking for UPSC.' : 'Sign in to continue your preparation.'}
         </T>
+        <SocialSignIn onDone={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         {isRegister ? <Field label="Name" value={name} onChangeText={setName} autoComplete="name" textContentType="name" /> : null}
         <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
         <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete={isRegister ? 'new-password' : 'current-password'} textContentType={isRegister ? 'newPassword' : 'password'} onSubmitEditing={submit} />

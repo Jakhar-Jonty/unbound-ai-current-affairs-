@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { api, setAuthToken, setUnauthorizedHandler } from './api';
 import { getItem, setItem, removeItem } from './storage';
 import { registerForPush, unregisterPush } from './push';
-import { clearOffline } from './offline';
+import { clearOffline, setOfflineAllowed } from './offline';
 
 const TOKEN_KEY = 'authToken';
 const USER_KEY = 'authUser'; // Last known profile, so the app knows who's signed in when it starts offline.
@@ -69,12 +69,28 @@ export function AuthProvider({ children }) {
     registerForPush();
   }, [queryClient]);
 
+  // Offline downloads follow premium status (everyone has it while premium is switched off).
+  setOfflineAllowed(!!state.user?.premium?.active);
+
   const value = useMemo(() => ({
     ...state,
     signedIn: !!state.user,
     signIn: async (email, password) => startSession(await api('/auth/login', { method: 'POST', body: { email, password } })),
     register: async (name, email, password) => startSession(await api('/auth/register', { method: 'POST', body: { name, email, password } })),
     signOut: async () => { await unregisterPush(); await clearOffline(); await clear(); },
+    // Reloads the profile (e.g. after buying Premium or verifying email).
+    refreshUser: async () => {
+      const { user } = await api('/auth/me');
+      await rememberUser(user);
+      setState((st) => ({ ...st, user }));
+      return user;
+    },
+    setUser: async (user) => {
+      await rememberUser(user);
+      setState((st) => ({ ...st, user }));
+    },
+    signInWithGoogle: async (idToken) => startSession(await api('/auth/google', { method: 'POST', body: { idToken } })),
+    signInWithApple: async (identityToken, fullName) => startSession(await api('/auth/apple', { method: 'POST', body: { identityToken, fullName } })),
     updateProfile: async (changes) => {
       const { user } = await api('/auth/me', { method: 'PATCH', body: changes });
       await rememberUser(user);
@@ -85,7 +101,7 @@ export function AuthProvider({ children }) {
     applySession: startSession,
     deleteAccount: async (password) => {
       await unregisterPush();
-      await api('/auth/me', { method: 'DELETE', body: { password } });
+      await api('/auth/me', { method: 'DELETE', body: password === 'DELETE' ? { confirm: 'DELETE' } : { password } });
       await clearOffline();
       await clear();
     },

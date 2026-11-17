@@ -17,6 +17,7 @@ const push = require('../notifications/push.service');
 const { AuditLog, audit } = require('./auditLog.model');
 const editorial = require('./editorial.service');
 const { GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { similarTo } = require('../pipeline/similarity');
 
 const router = express.Router();
 router.use(requireAuth, requireRole('editor'));
@@ -48,7 +49,7 @@ router.get('/articles', validate(pagination.extend({ status: z.enum(ARTICLE_STAT
   const filter = { ...(status ? { status } : {}), ...(q ? { $text: { $search: q } } : {}) };
   const [items, total] = await Promise.all([
     Article.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)
-      .select('slug title status version tags createdAt publishedAt generation.provider generation.model factsToVerify').lean(),
+      .select('slug title status version tags createdAt publishedAt generation.provider generation.model factsToVerify sources.publisher').lean(),
     Article.countDocuments(filter),
   ]);
   res.json({ items, page, limit, total });
@@ -152,6 +153,29 @@ router.post('/articles/:id/retract', validate(reasonSchema), async (req, res) =>
   const article = await editorial.retractArticle(idParam(req), { userId: req.user._id, reason: req.valid.body.reason });
   await audit(req, 'article.retract', 'Article', article._id, req.valid.body);
   res.json({ article });
+});
+
+// Articles from the last 7 days that look like the same event (suggestions for merging).
+router.get('/articles/:id/similar', async (req, res) => {
+  const article = await editorial.getArticleOr404(idParam(req));
+  const since = new Date((article.createdAt || new Date()).getTime() - 7 * 86400000);
+  const candidates = await Article.find({ _id: { $ne: article._id }, status: { $in: ['in_review', 'draft', 'published'] }, createdAt: { $gte: since } })
+    .select('title summary status createdAt sources.publisher').limit(300).lean();
+  const asItem = (a) => ({ title: a.title, description: a.summary });
+  const matches = similarTo(asItem(article), candidates.map(asItem), { threshold: 0.2, minSharedTitleWords: 1 }).slice(0, 5);
+  res.json({
+    items: matches.map((m) => {
+      const a = candidates[m.index];
+      return { _id: a._id, title: a.title, status: a.status, createdAt: a.createdAt, publishers: [...new Set((a.sources || []).map((src) => src.publisher).filter(Boolean))], score: Math.round(m.score * 100) / 100 };
+    }),
+  });
+});
+
+router.post('/articles/:id/merge', validate(z.object({ intoId: objectId })), async (req, res) => {
+  const { target, source, questionsMoved } = await editorial.mergeArticles(idParam(req), req.valid.body.intoId, { userId: req.user._id });
+  await audit(req, 'article.merge', 'Article', source._id, { into: target._id, questionsMoved });
+  await audit(req, 'article.merge_received', 'Article', target._id, { from: source._id, questionsMoved });
+  res.json({ article: target, questionsMoved });
 });
 
 router.get('/articles/:id/revisions/:version', async (req, res) => {
@@ -277,9 +301,10 @@ router.post('/notifications', adminOnly, validate(z.object({
 });
 
 // ---------- Users & audit ----------
-router.get('/users', adminOnly, validate(pagination.extend({ role: z.enum(ROLES).optional() }), 'query'), async (req, res) => {
-  const { page, limit, role } = req.valid.query;
-  const filter = role ? { role } : {};
+router.get('/users', adminOnly, validate(pagination.extend({ role: z.enum(ROLES).optional(), q: z.string().trim().max(100).optional() }), 'query'), async (req, res) => {
+  const { page, limit, role, q } = req.valid.query;
+  const escaped = q ? q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
+  const filter = { ...(role ? { role } : {}), ...(escaped ? { email: { $regex: escaped, $options: 'i' } } : {}) };
   const [items, total] = await Promise.all([
     User.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
     User.countDocuments(filter),
@@ -287,10 +312,21 @@ router.get('/users', adminOnly, validate(pagination.extend({ role: z.enum(ROLES)
   res.json({ items: items.map((u) => ({ ...u.toPublic(), disabled: u.disabled })), page, limit, total });
 });
 
-router.patch('/users/:id', adminOnly, validate(z.object({ role: z.enum(ROLES).optional(), disabled: z.boolean().optional() })), async (req, res) => {
+router.patch('/users/:id', adminOnly, validate(z.object({
+  role: z.enum(ROLES).optional(),
+  disabled: z.boolean().optional(),
+  // Complimentary premium until this date (null removes it).
+  premiumUntil: z.coerce.date().nullable().optional(),
+})), async (req, res) => {
   const id = idParam(req);
-  if (String(req.user._id) === id) throw badRequest('You cannot change your own role or status');
-  const user = await User.findByIdAndUpdate(id, { $set: req.valid.body }, { returnDocument: 'after' });
+  const { premiumUntil, ...rest } = req.valid.body;
+  if (String(req.user._id) === id && (rest.role || rest.disabled !== undefined)) throw badRequest('You cannot change your own role or status');
+  const set = { ...rest };
+  if (premiumUntil !== undefined) {
+    set.premium = premiumUntil ? { plan: 'complimentary', until: premiumUntil, source: 'admin', status: 'active' } : { status: 'ended' };
+  }
+  const user = await User.findByIdAndUpdate(id, { $set: set }, { returnDocument: 'after' });
+  if (user && premiumUntil === null) await require('../billing/billing.service').syncUserPremium(user._id);
   if (!user) throw notFound('User not found');
   await audit(req, 'user.update', 'User', user._id, req.valid.body);
   res.json({ user: { ...user.toPublic(), disabled: user.disabled } });

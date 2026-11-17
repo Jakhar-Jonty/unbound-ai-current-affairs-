@@ -7,6 +7,7 @@ import ListScreen from '../../components/ListScreen';
 import ArticleCard from '../../components/ArticleCard';
 import TodayQuizCard from '../../components/QuizCard';
 import StreakBadge from '../../components/StreakBadge';
+import VerifyEmailBanner from '../../components/VerifyEmailBanner';
 import { Button, Empty, ErrorView, SectionTitle, T } from '../../components/ui';
 import { router } from 'expo-router';
 
@@ -23,6 +24,7 @@ export default function Today() {
           <T variant="caption" color="textSecondary">{formatLongDate().toUpperCase()}</T>
           <T variant="display" style={{ marginTop: spacing.xs, marginBottom: spacing.md }}>{firstName ? `Hello, ${firstName}` : 'Today'}</T>
           {user ? <View style={{ marginBottom: spacing.md }}><StreakBadge /></View> : null}
+          <VerifyEmailBanner />
           {!user ? <View style={{ height: spacing.sm }} /> : null}
           <TodayQuizCard />
           <SectionTitle>Latest current affairs</SectionTitle>

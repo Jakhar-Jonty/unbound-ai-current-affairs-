@@ -6,6 +6,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * read", up to RECENT_LIMIT, oldest dropped first.
  */
 const INDEX_KEY = 'offline:index';
+
+// Offline reading is a premium feature; set from the signed-in user's status.
+let offlineAllowed = false;
+export function setOfflineAllowed(v) { offlineAllowed = !!v; }
+export const canUseOffline = () => offlineAllowed;
 const RECENT_LIMIT = 30;
 const articleKey = (id) => `offline:article:${id}`;
 const bookmarksKey = (userId) => `offline:bookmarks:${userId}`;
