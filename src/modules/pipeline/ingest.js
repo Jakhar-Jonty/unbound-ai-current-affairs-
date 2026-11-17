@@ -62,14 +62,21 @@ async function fetchText(url, { fetchImpl = fetch, timeoutMs = 15000 } = {}) {
  */
 async function ingestFeeds({ feeds = getFeeds(), fetchImpl = fetch, log } = {}) {
   const cutoff = new Date(Date.now() - config.pipeline.maxItemAgeHours * 3600 * 1000);
-  const stats = { feeds: feeds.length, fetched: 0, inserted: 0, grouped: 0, tooOld: 0, feedErrors: [] };
+  const stats = { feeds: feeds.length, fetched: 0, inserted: 0, grouped: 0, tooOld: 0, excluded: 0, feedErrors: [] };
   const insertedIds = [];
 
   for (const feed of feeds) {
     try {
       const items = parseFeed(await fetchText(feed.url, { fetchImpl }));
       stats.fetched += items.length;
+      // Optional per-feed headline filter for routine notices (saves an AI call each).
+      const exclude = feed.exclude ? new RegExp(feed.exclude, 'i') : null;
+      const excludeUrl = feed.excludeUrl ? new RegExp(feed.excludeUrl, 'i') : null;
       const fresh = items.filter((i) => {
+        if (exclude?.test(i.title) || excludeUrl?.test(i.url)) {
+          stats.excluded += 1;
+          return false;
+        }
         const ok = !i.publishedAt || i.publishedAt >= cutoff;
         if (!ok) stats.tooOld += 1;
         return ok;
@@ -79,7 +86,7 @@ async function ingestFeeds({ feeds = getFeeds(), fetchImpl = fetch, log } = {}) 
         fresh.map((i) => ({
           updateOne: {
             filter: { url: i.url },
-            update: { $setOnInsert: { ...i, feedId: feed.id, publisher: feed.publisher, status: 'new' } },
+            update: { $setOnInsert: { ...i, feedId: feed.id, publisher: feed.publisher, priority: feed.priority || 0, status: 'new' } },
             upsert: true,
           },
         })),

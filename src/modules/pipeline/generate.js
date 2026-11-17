@@ -16,7 +16,7 @@ const MAX_SOURCES_PER_PROMPT = 4;
 const stamp = () => ({ status: 'processing', processingStartedAt: new Date() });
 
 /**
- * Atomically claims up to `limit` stories. For each, the lead item and every other
+ * Atomically claims up to `limit` stories, higher-priority feeds first, then newest. For each, the lead item and every other
  * queued item in the same story are claimed together, so a story is written once.
  */
 async function claimBatch(limit) {
@@ -26,7 +26,7 @@ async function claimBatch(limit) {
     const lead = await RawItem.findOneAndUpdate(
       { status: 'new' },
       { $set: set, $inc: { attempts: 1 } },
-      { sort: { publishedAt: -1 }, returnDocument: 'after' },
+      { sort: { priority: -1, publishedAt: -1 }, returnDocument: 'after' },
     );
     if (!lead) break;
     let items = [lead];

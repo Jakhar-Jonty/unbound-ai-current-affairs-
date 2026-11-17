@@ -3,7 +3,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { setupDb, teardownDb, clearDb, rss, fakeFetch } = require('./helpers');
 const { ingestFeeds, parseFeed } = require('../src/modules/pipeline/ingest');
-const { generateContent, isRateLimit } = require('../src/modules/pipeline/generate');
+const { generateContent, isRateLimit, claimBatch } = require('../src/modules/pipeline/generate');
 const { createMockProvider } = require('../src/modules/pipeline/ai/mock');
 const { RawItem } = require('../src/modules/pipeline/rawItem.model');
 const { Article } = require('../src/modules/content/article.model');
@@ -42,6 +42,19 @@ test('ingest stores new items once and ignores old ones', async () => {
   const s2 = await ingestFeeds({ feeds: [FEED], fetchImpl });
   assert.equal(s2.inserted, 0, 'second run inserts nothing');
   assert.equal(await RawItem.countDocuments(), 2);
+});
+
+test('ingest drops headlines matching a feed exclude pattern', async () => {
+  const fetchImpl = fakeFetch({
+    [FEED.url]: rss([
+      { title: 'RBI to conduct VRRR auction under LAF', url: 'https://n.test/r1' },
+      { title: 'RBI releases report on currency and finance', url: 'https://n.test/r2' },
+    ]),
+  });
+  const stats = await ingestFeeds({ feeds: [{ ...FEED, exclude: 'auction|treasury bill' }], fetchImpl });
+  assert.equal(stats.excluded, 1);
+  assert.equal(stats.inserted, 1);
+  assert.equal((await RawItem.findOne()).url, 'https://n.test/r2');
 });
 
 test('generate creates in-review articles and questions with provenance', async () => {
@@ -148,4 +161,40 @@ test('rate limit detection covers each provider SDK', () => {
   assert.equal(isRateLimit(new Error('{"error":{"code":429,"status":"RESOURCE_EXHAUSTED"}}')), true);
   assert.equal(isRateLimit({ status: 400, message: 'Developer instruction is not enabled' }), false);
   assert.equal(isRateLimit(new Error('AI output failed validation: subjects')), false);
+});
+
+test('ingest drops links matching excludeUrl and stores the feed priority', async () => {
+  const { DEFAULT_FEEDS } = require('../src/modules/pipeline/feeds');
+  const hindu = DEFAULT_FEEDS.find((f) => f.id === 'thehindu-national');
+  const fetchImpl = fakeFetch({
+    [hindu.url]: rss([
+      { title: 'Overbridge opens after delay', url: 'https://www.thehindu.com/news/national/karnataka/rob-opens/article100.ece' },
+      { title: 'City civic body launches plan', url: 'https://www.thehindu.com/news/cities/Hyderabad/plan/article101.ece' },
+      { title: 'India records decline in malaria cases', url: 'https://www.thehindu.com/news/national/malaria-decline/article102.ece' },
+    ]),
+  });
+  const stats = await ingestFeeds({ feeds: [hindu], fetchImpl });
+  assert.equal(stats.excluded, 2, 'state and city desk stories are dropped');
+  const kept = await RawItem.find();
+  assert.deepEqual(kept.map((i) => i.title), ['India records decline in malaria cases']);
+  assert.equal(kept[0].priority, hindu.priority);
+});
+
+test('higher-priority feeds are written first', async () => {
+  const now = Date.now();
+  await RawItem.create([
+    { url: 'https://n.test/general', feedId: 'general', title: 'Newest general news about a scheme', publishedAt: new Date(now), priority: 1 },
+    { url: 'https://n.test/explained', feedId: 'explained', title: 'Older explainer on a constitutional body', publishedAt: new Date(now - 3600000), priority: 3 },
+  ]);
+  const [first] = await claimBatch(1);
+  assert.equal(first[0].url, 'https://n.test/explained');
+});
+
+test('Indian Express Explained drops sports and culture sections only', () => {
+  const { DEFAULT_FEEDS } = require('../src/modules/pipeline/feeds');
+  const re = new RegExp(DEFAULT_FEEDS.find((f) => f.id === 'indianexpress-explained').excludeUrl, 'i');
+  assert.equal(re.test('https://indianexpress.com/article/explained/explained-sports/dhoni-retires-10000/'), true);
+  assert.equal(re.test('https://indianexpress.com/article/explained/explained-culture/bond-casting-10001/'), true);
+  assert.equal(re.test('https://indianexpress.com/article/explained/explained-economics/food-inflation-10002/'), false);
+  assert.equal(re.test('https://indianexpress.com/article/explained/explained-law/bilkis-bano-10003/'), false);
 });
