@@ -54,6 +54,19 @@ Several outlets usually report the same event. The pipeline groups them so edito
 3. **Coverage arriving later** is added as an extra source (marked "added later") while the article is still in review. Published, retracted and rejected stories are never changed or brought back by the pipeline.
 4. **Missed duplicates.** The threshold is deliberately conservative, because blending two different stories is worse than missing a duplicate. Each article in review shows "Possible duplicates" in the admin panel; merging moves sources, flagged facts and questions into the other article, resets fact confirmations, and rejects the duplicate with a link to where it went.
 
+### Hindi
+
+Articles, quizzes and practice are available in Hindi as well as English. English stays the source of truth; Hindi is a reviewed translation of a specific English version.
+
+1. **Translate after approval.** The `translate-content` job (every 2 hours by default, `CRON_TRANSLATE`) picks published articles whose Hindi is missing or older than the English, and translates the article text and its published questions in one AI call. The model sees only the approved English and is told to add nothing, keep every number as digits, use official Hindi names and standard UPSC terms, and keep the options in the same order.
+2. **Automatic checks** (`src/modules/pipeline/translatePrompts.js`): every number in each English field, and in each option, must appear in its Hindi counterpart; key point and option counts must match; Hindi fields must actually be in Devanagari. A failing translation is not stored; after 3 failures on the same English version the article is left for an editor.
+3. **Hindi review.** Admin panel → **Hindi** tab, or the Hindi panel on any published article: English and Hindi side by side, editable, with any number warnings at the top. **Publish Hindi** makes it visible; **Translate again** discards the version waiting for review.
+4. **Corrections.** When the English article or a question is corrected, its version changes and the old Hindi stops being served immediately. Readers get English until the new translation is reviewed.
+
+Readers choose the language in the app (intro, Profile, or the switch on each article and quiz). The API takes `?lang=hi` on content, quiz, practice, bookmark and insights endpoints; responses include `lang` (what was actually served) and, for articles, `hindiAvailable`. Grading is by option position, so scores are the same in either language.
+
+With Gemini's free tier (20 requests a day), each translated article uses one request, on top of article generation. Lower `TRANSLATE_BATCH_SIZE` or move to a paid tier if generation needs the quota.
+
 ### Free and Premium
 
 | | Free | Premium (₹49/month or ₹499/year) |
@@ -222,6 +235,10 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/admin/dashboard` | Counts by status, last run of each job |
 | GET | `/admin/articles` | All articles, `?status=in_review` |
 | GET | `/admin/articles/:id` | Full detail with questions, revisions, history and raw AI output |
+| GET | `/admin/translations` | `?status=in_review\|failed\|pending`: articles for the Hindi tab |
+| PATCH | `/admin/articles/:id/translations/hi` · `/admin/questions/:id/translations/hi` | Edit the Hindi text |
+| POST | `/admin/articles/:id/translations/hi/publish` | Publish Hindi waiting for review |
+| POST | `/admin/articles/:id/translations/hi/retranslate` | Discard Hindi in review and translate again now |
 | GET | `/admin/articles/:id/similar` | Up to 5 recent articles that look like the same event |
 | POST | `/admin/articles/:id/merge` | `{ intoId }` merges this article (in review) into another one in review |
 | POST | `/admin/articles` | Write an article by hand (goes to review) |

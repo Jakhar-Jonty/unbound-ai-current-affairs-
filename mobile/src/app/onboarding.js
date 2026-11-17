@@ -6,6 +6,7 @@ import { usePrefs } from '../lib/prefs';
 import { useTheme, spacing } from '../theme';
 import { Button, Screen, T } from '../components/ui';
 import SubjectPicker from '../components/SubjectPicker';
+import LanguageSwitch from '../components/LanguageSwitch';
 
 const SLIDES = [
   { icon: 'newspaper', title: 'Current affairs, made for UPSC', body: 'Every day, the news that matters for Prelims and Mains, explained and linked to the syllabus. Each explainer is checked by an editor against its sources.' },
@@ -53,7 +54,8 @@ export default function Onboarding() {
 
   return (
     <Screen scroll={false} contentStyle={{ justifyContent: 'space-between' }}>
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        {i === 0 ? <LanguageSwitch /> : <View />}
         <Button title="Skip" variant="ghost" onPress={() => setI(steps - 1)} />
       </View>
       <View>

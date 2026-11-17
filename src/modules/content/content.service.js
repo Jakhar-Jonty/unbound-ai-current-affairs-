@@ -2,6 +2,7 @@
 const { Article } = require('./article.model');
 const { ArticleRevision } = require('./articleRevision.model');
 const { slugify } = require('../../lib/text');
+const { articleText } = require('./i18n');
 
 const EDITABLE_FIELDS = ['title', 'summary', 'body', 'keyPoints', 'upscRelevance', 'tags', 'sources', 'eventDate'];
 
@@ -35,28 +36,32 @@ function readingMinutes(a) {
 }
 
 /** Shape returned by public list endpoints. */
-function toListItem(a) {
+function toListItem(a, lang = 'en') {
+  const t = articleText(a, lang);
   return {
     id: a._id,
     slug: a.slug,
-    title: a.title,
-    summary: a.summary,
+    title: t.title,
+    summary: t.summary,
+    lang: t.lang,
+    hindiAvailable: t.hindiAvailable,
     tags: a.tags,
     status: a.status,
     version: a.version,
     eventDate: a.eventDate,
     publishedAt: a.publishedAt,
-    readingMinutes: a.body ? readingMinutes(a) : undefined,
+    readingMinutes: t.body ? readingMinutes(t) : undefined,
   };
 }
 
 /** Shape returned by the public detail endpoint. */
-function toPublicDetail(a) {
+function toPublicDetail(a, lang = 'en') {
+  const t = articleText(a, lang);
   return {
-    ...toListItem(a),
-    body: a.body,
-    keyPoints: a.keyPoints,
-    upscRelevance: a.upscRelevance,
+    ...toListItem(a, lang),
+    body: t.body,
+    keyPoints: t.keyPoints,
+    upscRelevance: t.upscRelevance,
     sources: (a.sources || []).map((s) => ({ url: s.url, publisher: s.publisher, title: s.title, publishedAt: s.publishedAt })),
     corrections: (a.corrections || []).map((c) => ({ note: c.note, version: c.version, at: c.at })),
     retraction: a.status === 'retracted' ? { reason: a.retraction?.reason, at: a.retraction?.at } : undefined,

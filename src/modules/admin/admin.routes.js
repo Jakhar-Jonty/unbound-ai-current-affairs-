@@ -16,6 +16,7 @@ const { jobs } = require('../jobs/registry');
 const push = require('../notifications/push.service');
 const { AuditLog, audit } = require('./auditLog.model');
 const editorial = require('./editorial.service');
+const translation = require('./translation.service');
 const { GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 const { similarTo } = require('../pipeline/similarity');
 
@@ -30,12 +31,14 @@ router.get('/dashboard', async (_req, res) => {
   const countBy = async (Model) => Object.fromEntries(
     (await Model.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])).map((r) => [r._id, r.n]),
   );
-  const [articles, questions, rawItems, lastRuns] = await Promise.all([
+  const [articles, questions, rawItems, lastRuns, hindiReview, hindiFailed, hindiPending] = await Promise.all([
     countBy(Article), countBy(Question), countBy(RawItem),
     JobRun.aggregate([{ $sort: { startedAt: -1 } }, { $group: { _id: '$name', run: { $first: '$$ROOT' } } }]),
+    translation.listForReview('in_review'), translation.listForReview('failed'), translation.listForReview('pending'),
   ]);
   res.json({
     articles, questions, rawItems,
+    hindi: { inReview: hindiReview.length, failed: hindiFailed.length, pending: hindiPending.length },
     jobs: Object.keys(jobs).map((name) => {
       const r = lastRuns.find((x) => x._id === name)?.run;
       return { name, schedule: jobs[name].schedule, lastRun: r ? { status: r.status, startedAt: r.startedAt, durationMs: r.durationMs, stats: r.stats, error: r.error } : null };
@@ -62,7 +65,55 @@ router.get('/articles/:id', async (req, res) => {
     ArticleRevision.find({ article: article._id }).sort({ version: -1 }).select('version reason changedBy createdAt').lean(),
     AuditLog.find({ entityId: article._id }).sort({ createdAt: -1 }).limit(50).populate('actor', 'name email').lean(),
   ]);
-  res.json({ article, questions, revisions, history });
+  const published = questions.filter((q) => q.status === 'published');
+  res.json({ article, questions, revisions, history, hindi: translation.hindiSummary(article, published) });
+});
+
+// ---------- Hindi ----------
+router.get('/translations', validate(z.object({ status: z.enum(['in_review', 'failed', 'pending']).default('in_review') }), 'query'), async (req, res) => {
+  const items = await translation.listForReview(req.valid.query.status);
+  res.json({
+    items: items.map((a) => ({
+      _id: a._id, title: a.title, titleHi: a.translations?.hi?.title, publishedAt: a.publishedAt, version: a.version,
+      error: a.translationErrors?.hi?.message,
+    })),
+  });
+});
+
+const hindiArticleSchema = z.object({
+  title: z.string().trim().min(3).max(300),
+  summary: z.string().trim().min(10).max(3000),
+  body: z.string().trim().min(30).max(30000),
+  keyPoints: z.array(z.string().trim().min(1).max(600)).max(10),
+  upscRelevance: z.string().trim().max(3000),
+}).partial();
+
+router.patch('/articles/:id/translations/hi', validate(hindiArticleSchema), async (req, res) => {
+  const article = await translation.editHindiArticle(idParam(req), req.valid.body);
+  await audit(req, 'article.hindi_edit', 'Article', article._id, { fields: Object.keys(req.valid.body) });
+  res.json({ article });
+});
+
+router.patch('/questions/:id/translations/hi', validate(z.object({
+  stem: z.string().trim().min(5).max(3000),
+  options: z.array(z.string().trim().min(1).max(600)).min(2).max(6),
+  explanation: z.string().trim().min(5).max(5000),
+}).partial()), async (req, res) => {
+  const question = await translation.editHindiQuestion(idParam(req), req.valid.body);
+  await audit(req, 'question.hindi_edit', 'Question', question._id, { fields: Object.keys(req.valid.body) });
+  res.json({ question });
+});
+
+router.post('/articles/:id/translations/hi/publish', async (req, res) => {
+  const { article, published, pendingQuestions } = await translation.publishHindi(idParam(req), { userId: req.user._id });
+  await audit(req, 'article.hindi_publish', 'Article', article._id, { published, pendingQuestions });
+  res.json({ published, pendingQuestions });
+});
+
+router.post('/articles/:id/translations/hi/retranslate', async (req, res) => {
+  const outcome = await translation.retranslate(idParam(req));
+  await audit(req, 'article.hindi_retranslate', 'Article', idParam(req), { outcome });
+  res.json({ outcome });
 });
 
 const tagsSchema = z.object({

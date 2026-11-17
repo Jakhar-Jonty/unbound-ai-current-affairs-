@@ -4,6 +4,11 @@ import Constants from 'expo-constants';
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl || 'http://localhost:4000').replace(/\/$/, '');
 
 let authToken = null;
+let contentLang = 'en';
+
+/** Language for article and question text ('en' or 'hi'); sent as ?lang= on every request. */
+export function setApiLang(lang) { contentLang = lang === 'hi' ? 'hi' : 'en'; }
+export function getApiLang() { return contentLang; }
 let onUnauthorized = null;
 
 export function setAuthToken(token) { authToken = token; }
@@ -19,10 +24,11 @@ export class ApiError extends Error {
 }
 
 /** Calls the v1 API. Throws ApiError with the server's message on failure. */
-export async function api(path, { method = 'GET', body, signal } = {}) {
+export async function api(path, { method = 'GET', body, signal, lang = contentLang } = {}) {
   let res;
+  const url = lang === 'hi' ? `${path}${path.includes('?') ? '&' : '?'}lang=hi` : path;
   try {
-    res = await fetch(`${API_URL}/api/v1${path}`, {
+    res = await fetch(`${API_URL}/api/v1${url}`, {
       method,
       signal,
       headers: {

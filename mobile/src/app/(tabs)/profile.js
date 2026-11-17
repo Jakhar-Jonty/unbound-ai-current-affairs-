@@ -8,6 +8,7 @@ import { useTheme, spacing } from '../../theme';
 import { subjectLabel } from '../../components/ArticleCard';
 import SignInPrompt from '../../components/SignInPrompt';
 import VerifyEmailBanner from '../../components/VerifyEmailBanner';
+import LanguageSwitch from '../../components/LanguageSwitch';
 import { formatDate, shortName } from '../../lib/format';
 import { useMySubjects } from '../../lib/subjects-pref';
 import { Button, Card, Divider, ErrorView, Loading, ProgressBar, Screen, SectionTitle, T } from '../../components/ui';
@@ -126,6 +127,15 @@ export default function Profile() {
           </T>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+      </Card>
+
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
+        <Ionicons name="language-outline" size={22} color={c.text} />
+        <View style={{ flex: 1 }}>
+          <T variant="heading">Language · भाषा</T>
+          <T variant="small" color="textSecondary">For articles, quizzes and practice</T>
+        </View>
+        <LanguageSwitch compact />
       </Card>
 
       <SectionTitle>Account</SectionTitle>
