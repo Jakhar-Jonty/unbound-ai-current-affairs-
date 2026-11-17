@@ -9,6 +9,7 @@ import { subjectLabel } from '../../components/ArticleCard';
 import SignInPrompt from '../../components/SignInPrompt';
 import VerifyEmailBanner from '../../components/VerifyEmailBanner';
 import { formatDate, shortName } from '../../lib/format';
+import { useMySubjects } from '../../lib/subjects-pref';
 import { Button, Card, Divider, ErrorView, Loading, ProgressBar, Screen, SectionTitle, T } from '../../components/ui';
 
 function AccountRow({ icon, label, onPress, danger }) {
@@ -37,6 +38,7 @@ export default function Profile() {
   const c = useTheme();
   const { user, signedIn, signOut, updateProfile } = useAuth();
   const { data: taxonomy } = useTaxonomy();
+  const { subjects: mySubjects } = useMySubjects();
   const { data, isLoading, error, refetch, isRefetching } = useProgress();
   const version = Constants.expoConfig?.version;
 
@@ -111,6 +113,17 @@ export default function Profile() {
         <View style={{ flex: 1 }}>
           <T variant="heading">Your insights</T>
           <T variant="small" color="textSecondary">Weak topics, trends and questions to revisit</T>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+      </Card>
+
+      <Card onPress={() => router.push('/account/subjects')} accessibilityLabel="My subjects" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
+        <Ionicons name="options-outline" size={22} color={c.text} />
+        <View style={{ flex: 1 }}>
+          <T variant="heading">My subjects</T>
+          <T variant="small" color="textSecondary" numberOfLines={1}>
+            {mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k)).join(', ') : 'Choose subjects for your “For you” feed'}
+          </T>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       </Card>

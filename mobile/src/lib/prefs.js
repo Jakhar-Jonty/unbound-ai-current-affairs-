@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Device preferences: article text size and whether the intro has been seen. */
 const KEY = 'prefs:v1';
-const DEFAULTS = { textScale: 1, onboarded: false };
+const DEFAULTS = { textScale: 1, onboarded: false, subjects: [], feed: 'all' };
 export const TEXT_SCALES = [0.9, 1, 1.15, 1.3];
 
 const PrefsContext = createContext(null);

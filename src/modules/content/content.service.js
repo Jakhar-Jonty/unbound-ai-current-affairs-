@@ -27,6 +27,13 @@ async function recordRevision(article, { reason, userId } = {}) {
   );
 }
 
+/** Estimated reading time at 200 words a minute (at least 1 minute). */
+function readingMinutes(a) {
+  const text = [a.summary, a.body, ...(a.keyPoints || []), a.upscRelevance].filter(Boolean).join(' ');
+  const words = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 /** Shape returned by public list endpoints. */
 function toListItem(a) {
   return {
@@ -39,6 +46,7 @@ function toListItem(a) {
     version: a.version,
     eventDate: a.eventDate,
     publishedAt: a.publishedAt,
+    readingMinutes: a.body ? readingMinutes(a) : undefined,
   };
 }
 
@@ -56,4 +64,4 @@ function toPublicDetail(a) {
   };
 }
 
-module.exports = { uniqueSlug, recordRevision, snapshotOf, toListItem, toPublicDetail, EDITABLE_FIELDS };
+module.exports = { readingMinutes, uniqueSlug, recordRevision, snapshotOf, toListItem, toPublicDetail, EDITABLE_FIELDS };

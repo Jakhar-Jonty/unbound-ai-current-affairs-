@@ -96,6 +96,7 @@ function RootStack() {
           <Stack.Screen name="insights" options={{ title: 'Your insights' }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="account/verify" options={{ title: 'Verify email' }} />
+          <Stack.Screen name="account/subjects" options={{ title: 'My subjects' }} />
           <Stack.Screen name="practice/[subject]" options={{ title: 'Practice' }} />
           <Stack.Screen name="account/password" options={{ title: 'Change password' }} />
           <Stack.Screen name="account/delete" options={{ title: 'Delete account' }} />

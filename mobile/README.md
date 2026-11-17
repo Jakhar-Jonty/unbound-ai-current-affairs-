@@ -17,7 +17,11 @@ React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs 
 - **Premium:** plan comparison and status; on Android and web it opens the secure Razorpay web checkout. Locked content shows an upgrade prompt, and premium is refreshed when you come back from checkout.
 - **Insights (Premium):** weakest subjects with one-tap practice, 8-week chart, accuracy by subject and GS paper, questions to revisit
 - **Sign-in:** email and password with email verification, Google, and Apple (iOS)
-- **Polish:** first-launch intro, loading placeholders, haptic feedback in quizzes, adjustable article text size (Aa), share
+- **Reading:** reading time on cards and articles, a progress bar while reading, related articles, and “Continue reading” on Today for an article you started but didn’t finish
+- **For you feed:** pick your subjects (in the intro or Profile → My subjects; saved to the account when signed in) and Today shows them first
+- **Quiz:** start screen with an optional exam timer (72 s a question, the Prelims pace; submits itself at zero), a review screen before submitting, and an animated score ring with a streak celebration
+- **Motion:** buttons and options respond to touch, practice answers pulse (right) or shake (wrong), and questions and results slide in. All animation is skipped when the phone’s “reduce motion” setting is on
+- **Polish:** first-launch intro, loading placeholders, haptic feedback, adjustable article text size (Aa), share
 
 People can browse without an account. Taking quizzes, bookmarks and progress need sign-in.
 

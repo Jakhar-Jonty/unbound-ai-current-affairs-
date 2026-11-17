@@ -85,6 +85,7 @@ router.get('/me', requireAuth, (req, res) => {
 router.patch('/me', requireAuth, validate(z.object({
   name: z.string().trim().min(1).max(100).optional(),
   showOnLeaderboard: z.boolean().optional(),
+  preferredSubjects: z.array(z.enum(require('../taxonomy/taxonomy').SUBJECT_KEYS)).max(16).optional(),
 })), async (req, res) => {
   const user = await User.findByIdAndUpdate(req.user._id, { $set: req.valid.body }, { returnDocument: 'after' });
   res.json({ user: user.toPublic() });

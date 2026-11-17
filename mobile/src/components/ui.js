@@ -9,7 +9,7 @@ export function T({ variant = 'body', color, style, ...props }) {
 }
 
 /** Full-screen scrollable container with safe-area padding. */
-export function Screen({ children, scroll = true, padded = true, edges = ['top'], refreshControl, contentStyle }) {
+export function Screen({ children, scroll = true, padded = true, edges = ['top'], refreshControl, contentStyle, onScroll, scrollRef }) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const pad = {
@@ -19,7 +19,7 @@ export function Screen({ children, scroll = true, padded = true, edges = ['top']
   };
   if (!scroll) return <View style={[{ flex: 1, backgroundColor: c.background }, pad, contentStyle]}>{children}</View>;
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={[pad, contentStyle]} refreshControl={refreshControl} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: c.background }} contentContainerStyle={[pad, contentStyle]} refreshControl={refreshControl} keyboardShouldPersistTaps="handled" onScroll={onScroll} scrollEventThrottle={onScroll ? 32 : undefined}>
       {children}
     </ScrollView>
   );
