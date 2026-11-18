@@ -1,8 +1,21 @@
-const dateFmt = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
-const longFmt = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' });
+import { getApiLang } from './api';
 
-export const formatDate = (d) => (d ? dateFmt.format(new Date(d)) : '');
-export const formatLongDate = (d = new Date()) => longFmt.format(new Date(d));
+// Dates follow the app language (Hindi month and day names, Latin digits).
+const fmts = {};
+function fmt(kind, lang) {
+  const key = `${kind}:${lang}`;
+  if (!fmts[key]) {
+    const locale = lang === 'hi' ? 'hi-IN' : 'en-IN';
+    const opts = kind === 'long'
+      ? { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata', numberingSystem: 'latn' }
+      : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata', numberingSystem: 'latn' };
+    fmts[key] = new Intl.DateTimeFormat(locale, opts);
+  }
+  return fmts[key];
+}
+
+export const formatDate = (d, lang = getApiLang()) => (d ? fmt('short', lang).format(new Date(d)) : '');
+export const formatLongDate = (d = new Date(), lang = getApiLang()) => fmt('long', lang).format(new Date(d));
 
 /** Compares dotted versions: returns -1, 0 or 1. */
 export function compareVersions(a = '0', b = '0') {

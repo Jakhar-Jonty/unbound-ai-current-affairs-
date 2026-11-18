@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Animated, View } from 'react-native';
 import { useTheme, spacing, radius } from '../theme';
+import { useT } from '../lib/i18n';
 
 /** Pulsing grey block shown while content loads. */
 export function Bone({ width = '100%', height = 14, style }) {
@@ -20,8 +21,9 @@ export function Bone({ width = '100%', height = 14, style }) {
 /** Placeholder shaped like an article card. */
 export function ArticleCardSkeleton() {
   const c = useTheme();
+  const { t } = useT();
   return (
-    <View accessibilityLabel="Loading" style={{ borderWidth: 1, borderColor: c.border, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md, gap: spacing.sm }}>
+    <View accessibilityLabel={t('common.loading')} style={{ borderWidth: 1, borderColor: c.border, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md, gap: spacing.sm }}>
       <View style={{ flexDirection: 'row', gap: spacing.xs }}><Bone width={44} height={20} /><Bone width={110} height={20} /></View>
       <Bone height={18} width="92%" />
       <Bone height={18} width="70%" />

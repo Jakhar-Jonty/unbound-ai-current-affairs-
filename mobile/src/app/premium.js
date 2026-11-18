@@ -10,29 +10,35 @@ import { useBillingPlans } from '../lib/queries';
 import { formatDate } from '../lib/format';
 import { useTheme, spacing, radius } from '../theme';
 import SignInPrompt from '../components/SignInPrompt';
+import { errorText, useT } from '../lib/i18n';
 import { Button, Card, ErrorView, Loading, Screen, T } from '../components/ui';
 
 const ROWS = [
-  ['Daily articles and explainers', 'Last {days} days', 'Full archive'],
-  ['Daily quiz with explanations', 'Last {days} days', 'All past quizzes'],
-  ['Weekly leaderboard', true, true],
-  ['Practice by subject', '{practice} a day', 'Unlimited'],
-  ['Saved articles and questions', 'Up to {bookmarks}', 'Unlimited'],
-  ['Offline reading', false, true],
-  ['Weak-topic insights', false, true],
-  ['AI tutor and audio briefings', false, 'When they launch'],
+  ['prem.row.articles', 'prem.lastDays', 'prem.fullArchive'],
+  ['prem.row.quiz', 'prem.lastDays', 'prem.allPast'],
+  ['prem.row.mock', true, true],
+  ['prem.row.board', true, true],
+  ['prem.row.practice', 'prem.perDay', 'prem.unlimited'],
+  ['prem.row.saved', 'prem.upTo', 'prem.unlimited'],
+  ['prem.row.offline', false, true],
+  ['prem.row.insights', false, true],
+  ['prem.row.audio', false, true],
+  ['prem.row.tutor', false, 'prem.whenLaunch'],
 ];
 
 function Cell({ v, free, limits }) {
   const c = useTheme();
-  if (v === true) return <Ionicons name="checkmark-circle" size={18} color={free ? c.textSecondary : c.accent} accessibilityLabel="Included" />;
-  if (v === false) return <Ionicons name="remove" size={18} color={c.textMuted} accessibilityLabel="Not included" />;
-  const text = String(v).replace('{days}', limits.archiveDays).replace('{practice}', limits.practicePerDay).replace('{bookmarks}', limits.bookmarks);
+  const { t } = useT();
+  if (v === true) return <Ionicons name="checkmark-circle" size={18} color={free ? c.textSecondary : c.accent} accessibilityLabel={t('prem.included')} />;
+  if (v === false) return <Ionicons name="remove" size={18} color={c.textMuted} accessibilityLabel={t('prem.notIncluded')} />;
+  const n = v === 'prem.perDay' ? limits.practicePerDay : limits.bookmarks;
+  const text = t(v, { days: limits.archiveDays, n });
   return <T variant="small" style={{ textAlign: 'center', fontWeight: free ? '400' : '700' }}>{text}</T>;
 }
 
 export default function PremiumScreen() {
   const c = useTheme();
+  const { t } = useT();
   const qc = useQueryClient();
   const { user, signedIn, refreshUser } = useAuth();
   const { data: plans, isLoading, error, refetch } = useBillingPlans();
@@ -51,10 +57,10 @@ export default function PremiumScreen() {
       if (fresh.premium?.active && !wasPremium.current) {
         checkoutOpen.current = false;
         wasPremium.current = true;
-        setMessage('Welcome to Premium!');
+        setMessage(t('prem.welcome'));
       }
     } catch { /* try again on next focus */ }
-  }, [refreshUser, qc]);
+  }, [refreshUser, qc, t]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (st) => { if (st === 'active') refreshAfterCheckout(); });
@@ -66,7 +72,7 @@ export default function PremiumScreen() {
     };
   }, [refreshAfterCheckout]);
 
-  if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="sparkles-outline" title="Sign in to see Premium" /></Screen>;
+  if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="sparkles-outline" title={t('prem.signIn')} /></Screen>;
   if (isLoading) return <Loading />;
   if (error) return <ErrorView error={error} onRetry={refetch} />;
 
@@ -89,7 +95,7 @@ export default function PremiumScreen() {
       await WebBrowser.openBrowserAsync(url);
       await refreshAfterCheckout(); // Native: the browser has been closed by now.
     } catch (err) {
-      setMessage(err.message);
+      setMessage(errorText(err, t));
     } finally {
       setBusy(false);
     }
@@ -101,22 +107,22 @@ export default function PremiumScreen() {
         <Ionicons name="sparkles" size={28} color={c.accent} />
         {!plans.enabled ? (
           <>
-            <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>Everything is free right now</T>
-            <T variant="small" color={c.onInverse} style={{ marginTop: spacing.xs, opacity: 0.85 }}>You already have every feature. Premium plans will start later.</T>
+            <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>{t('prem.freeNowTitle')}</T>
+            <T variant="small" color={c.onInverse} style={{ marginTop: spacing.xs, opacity: 0.85 }}>{t('prem.freeNowSub')}</T>
           </>
         ) : p.active ? (
           <>
-            <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>You’re Premium</T>
+            <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>{t('prem.youAre')}</T>
             <T variant="small" color={c.onInverse} style={{ marginTop: spacing.xs, opacity: 0.85 }}>
-              {p.plan === 'complimentary' ? 'Complimentary access' : `${p.plan === 'yearly' ? 'Yearly' : 'Monthly'} plan`}
-              {p.until ? ` · ${p.status === 'cancelled' ? 'ends' : 'renews'} ${formatDate(p.until)}` : ''}
+              {p.plan === 'complimentary' ? t('prem.complimentary') : p.plan === 'yearly' ? t('prem.yearly') : t('prem.monthly')}
+              {p.until ? t(p.status === 'cancelled' ? 'prem.ends' : 'prem.renews', { date: formatDate(p.until) }) : ''}
             </T>
           </>
         ) : (
           <>
-            <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>Prepare without limits</T>
+            <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>{t('prem.pitch')}</T>
             <T variant="small" color={c.onInverse} style={{ marginTop: spacing.xs, opacity: 0.85 }}>
-              From {monthly?.display}/month, or {yearly?.display}/year{saving > 0 ? ` (save ${saving}%)` : ''}.
+              {t('prem.from', { m: monthly?.display, y: yearly?.display })}{saving > 0 ? t('prem.save', { p: saving }) : ''}.
             </T>
           </>
         )}
@@ -124,13 +130,13 @@ export default function PremiumScreen() {
 
       <View style={{ marginTop: spacing.xl, borderWidth: 1, borderColor: c.border, borderRadius: radius.lg, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, backgroundColor: c.accentSoft }}>
-          <T variant="caption" style={{ flex: 1.4 }}>FEATURE</T>
-          <T variant="caption" style={{ flex: 1, textAlign: 'center' }}>FREE</T>
-          <T variant="caption" style={{ flex: 1, textAlign: 'center' }}>PREMIUM</T>
+          <T variant="caption" style={{ flex: 1.4 }}>{t('prem.feature')}</T>
+          <T variant="caption" style={{ flex: 1, textAlign: 'center' }}>{t('prem.free')}</T>
+          <T variant="caption" style={{ flex: 1, textAlign: 'center' }}>{t('prem.premium')}</T>
         </View>
         {ROWS.map(([label, free, prem], i) => (
           <View key={label} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.md, borderTopWidth: i ? 1 : 0, borderTopColor: c.border }}>
-            <T variant="small" style={{ flex: 1.4 }}>{label}</T>
+            <T variant="small" style={{ flex: 1.4 }}>{t(label)}</T>
             <View style={{ flex: 1, alignItems: 'center' }}><Cell v={free} free limits={limits} /></View>
             <View style={{ flex: 1, alignItems: 'center' }}><Cell v={prem} limits={limits} /></View>
           </View>
@@ -143,26 +149,26 @@ export default function PremiumScreen() {
         canBuyHere ? (
           user.emailVerified === false ? (
             <>
-              <T variant="small" color="textSecondary" style={{ marginTop: spacing.xl }}>Verify your email first. Your receipts are sent there.</T>
-              <Button title="Verify email" onPress={() => router.push('/account/verify')} style={{ marginTop: spacing.md }} />
+              <T variant="small" color="textSecondary" style={{ marginTop: spacing.xl }}>{t('prem.verifyFirst')}</T>
+              <Button title={t('titles.verify')} onPress={() => router.push('/account/verify')} style={{ marginTop: spacing.md }} />
             </>
           ) : (
             <>
-              <Button title="Continue to secure payment" icon="lock-closed" onPress={openCheckout} loading={busy} style={{ marginTop: spacing.xl }} />
+              <Button title={t('prem.continue')} icon="lock-closed" onPress={openCheckout} loading={busy} style={{ marginTop: spacing.xl }} />
               <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                Pay with UPI, card or net banking through Razorpay. Cancel any time and keep Premium until the end of the period you paid for.
+                {t('prem.payNote')}
               </T>
             </>
           )
         ) : (
           <T variant="small" color="textSecondary" style={{ marginTop: spacing.xl, textAlign: 'center' }}>
-            {Platform.OS === 'ios' ? 'Premium isn’t available in the iOS app yet.' : 'Premium will be available here soon.'}
+            {Platform.OS === 'ios' ? t('prem.notIos') : t('prem.soon')}
           </T>
         )
       ) : null}
 
       {paidSubscriber && canBuyHere ? (
-        <Button title="Manage subscription" variant="outline" onPress={openCheckout} loading={busy} style={{ marginTop: spacing.xl }} />
+        <Button title={t('prem.manage')} variant="outline" onPress={openCheckout} loading={busy} style={{ marginTop: spacing.xl }} />
       ) : null}
     </Screen>
   );

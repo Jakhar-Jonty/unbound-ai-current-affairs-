@@ -7,17 +7,19 @@ import { useTheme, spacing } from '../theme';
 import { Button, Screen, T } from '../components/ui';
 import SubjectPicker from '../components/SubjectPicker';
 import LanguageSwitch from '../components/LanguageSwitch';
+import { useT } from '../lib/i18n';
 
 const SLIDES = [
-  { icon: 'newspaper', title: 'Current affairs, made for UPSC', body: 'Every day, the news that matters for Prelims and Mains, explained and linked to the syllabus. Each explainer is checked by an editor against its sources.' },
-  { icon: 'checkbox', title: 'A 5-minute quiz every morning', body: 'Exam-style questions from the latest news, with explanations. Build a streak and see where you stand on the weekly leaderboard.' },
-  { icon: 'barbell', title: 'Practise where you’re weakest', body: 'Practice by subject and track your accuracy by GS paper, so revision goes where it counts.' },
+  { icon: 'newspaper', title: 'onb.s1.title', body: 'onb.s1.body' },
+  { icon: 'checkbox', title: 'onb.s2.title', body: 'onb.s2.body' },
+  { icon: 'barbell', title: 'onb.s3.title', body: 'onb.s3.body' },
 ];
 
 function Dots({ i, n }) {
   const c = useTheme();
+  const { t } = useT();
   return (
-    <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', marginBottom: spacing.xl }} accessibilityLabel={`Step ${i + 1} of ${n}`}>
+    <View style={{ flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', marginBottom: spacing.xl }} accessibilityLabel={t('onb.step', { i: i + 1, n })}>
       {Array.from({ length: n }, (_, k) => <View key={k} style={{ width: k === i ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: k === i ? c.accent : c.borderStrong }} />)}
     </View>
   );
@@ -27,6 +29,7 @@ function Dots({ i, n }) {
 export default function Onboarding() {
   const c = useTheme();
   const { update } = usePrefs();
+  const { t } = useT();
   const [i, setI] = useState(0);
   const [subjects, setSubjects] = useState([]);
   const steps = SLIDES.length + 1; // slides + subject picker
@@ -39,14 +42,14 @@ export default function Onboarding() {
     return (
       <Screen scroll={false} contentStyle={{ justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
-          <T variant="display" accessibilityRole="header" style={{ marginTop: spacing.xl }}>What are you focusing on?</T>
-          <T color="textSecondary" style={{ marginTop: spacing.sm, marginBottom: spacing.lg }}>Pick subjects for your “For you” feed. You can change this any time.</T>
+          <T variant="display" accessibilityRole="header" style={{ marginTop: spacing.xl }}>{t('onb.focus')}</T>
+          <T color="textSecondary" style={{ marginTop: spacing.sm, marginBottom: spacing.lg }}>{t('onb.focusSub')}</T>
           <ScrollView style={{ flex: 1 }}><SubjectPicker value={subjects} onChange={setSubjects} /></ScrollView>
         </View>
         <View style={{ paddingTop: spacing.lg }}>
           <Dots i={i} n={steps} />
-          <Button title="Create a free account" onPress={() => { done(); router.replace('/'); router.push('/register'); }} />
-          <Button title="Browse first" variant="ghost" onPress={() => finish('/')} style={{ marginTop: spacing.sm }} />
+          <Button title={t('common.createFreeAccount')} onPress={() => { done(); router.replace('/'); router.push('/register'); }} />
+          <Button title={t('onb.browse')} variant="ghost" onPress={() => finish('/')} style={{ marginTop: spacing.sm }} />
         </View>
       </Screen>
     );
@@ -56,18 +59,18 @@ export default function Onboarding() {
     <Screen scroll={false} contentStyle={{ justifyContent: 'space-between' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         {i === 0 ? <LanguageSwitch /> : <View />}
-        <Button title="Skip" variant="ghost" onPress={() => setI(steps - 1)} />
+        <Button title={t('onb.skip')} variant="ghost" onPress={() => setI(steps - 1)} />
       </View>
       <View>
         <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: c.inverse, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl }}>
           <Ionicons name={s.icon} size={40} color={c.accent} />
         </View>
-        <T variant="display" accessibilityRole="header">{s.title}</T>
-        <T color="textSecondary" style={{ marginTop: spacing.md, fontSize: 17, lineHeight: 26 }}>{s.body}</T>
+        <T variant="display" accessibilityRole="header">{t(s.title)}</T>
+        <T color="textSecondary" style={{ marginTop: spacing.md, fontSize: 17, lineHeight: 26 }}>{t(s.body)}</T>
       </View>
       <View>
         <Dots i={i} n={steps} />
-        <Button title="Next" variant="dark" onPress={() => setI(i + 1)} />
+        <Button title={t('common.next')} variant="dark" onPress={() => setI(i + 1)} />
       </View>
     </Screen>
   );

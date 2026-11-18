@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth';
 import { useMeta } from '../lib/queries';
 import { useTheme, spacing } from '../theme';
 import { Button, T } from './ui';
+import { errorText, useT } from '../lib/i18n';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -35,7 +36,8 @@ function GoogleButton({ onDone, onError }) {
       setBusy(false);
     }
   };
-  return <Button title="Continue with Google" icon="logo-google" variant="outline" loading={busy} disabled={!request} onPress={onPress} />;
+  const { t } = useT();
+  return <Button title={t('auth.google')} icon="logo-google" variant="outline" loading={busy} disabled={!request} onPress={onPress} />;
 }
 
 function AppleButton({ onDone, onError }) {
@@ -69,11 +71,12 @@ function AppleButton({ onDone, onError }) {
 /** Google (all platforms, when configured) and Apple (iOS) sign-in buttons. */
 export default function SocialSignIn({ onDone }) {
   const { data: meta } = useMeta();
+  const { t } = useT();
   const [error, setError] = useState(null);
   const showGoogle = googleConfigured && meta?.signIn?.google;
   const showApple = Platform.OS === 'ios' && meta?.signIn?.apple;
   if (!showGoogle && !showApple) return null;
-  const onError = (e) => setError(e?.message || 'Sign-in failed. Please try again.');
+  const onError = (e) => setError(e?.status !== undefined ? errorText(e, t) : t('errors.signInFailed'));
   return (
     <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
       {showApple ? <AppleButton onDone={onDone} onError={onError} /> : null}
@@ -81,7 +84,7 @@ export default function SocialSignIn({ onDone }) {
       {error ? <T variant="small" color="incorrect">{error}</T> : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
         <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(119,119,119,0.3)' }} />
-        <T variant="caption" color="textSecondary">OR USE EMAIL</T>
+        <T variant="caption" color="textSecondary">{t('auth.orEmail')}</T>
         <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(119,119,119,0.3)' }} />
       </View>
     </View>

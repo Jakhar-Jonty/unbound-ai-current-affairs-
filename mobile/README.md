@@ -16,7 +16,10 @@ React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs 
 
 - **Premium:** plan comparison and status; on Android and web it opens the secure Razorpay web checkout. Locked content shows an upgrade prompt, and premium is refreshed when you come back from checkout.
 - **Insights (Premium):** weakest subjects with one-tap practice, 8-week chart, accuracy by subject and GS paper, questions to revisit
-- **Hindi:** English / हिंदी switch in the intro, Profile, and on articles and quizzes. Articles, key points, quiz questions, options and explanations come in Hindi once an editor has published the translation; otherwise English with a short note. Labels around the content (key points, sources, reading time, subject names) follow the chosen language; the rest of the app is in English.
+- **Hindi:** the whole app is available in Hindi: every screen, button, tab and message, dates, and push notifications (the account stores the language). Switch in the intro, Profile, or on articles and quizzes. Articles and quiz content come in Hindi once an editor has published the translation; otherwise English with a short note. All app text is in `src/lib/i18n.js`, English and Hindi side by side.
+- **Weekly mock test:** a card on the Quizzes tab; rules, a server-side timer that keeps running if the app is closed (answers are kept on the device), auto-submit, then marks with UPSC negative marking, rank and top scores.
+- **Reminders:** Profile → Notifications turns the evening quiz reminder and the mock test alerts on or off.
+- **Audio briefing (Premium):** Today → “Today’s audio briefing” reads the top stories aloud with the phone’s own voice (`expo-speech`), in English or Hindi, with skip and speed controls. Hindi needs a Hindi text-to-speech voice on the phone; the app warns if none is installed.
 - **Sign-in:** email and password with email verification, Google, and Apple (iOS)
 - **Reading:** reading time on cards and articles, a progress bar while reading, related articles, and “Continue reading” on Today for an article you started but didn’t finish
 - **For you feed:** pick your subjects (in the intro or Profile → My subjects; saved to the account when signed in) and Today shows them first

@@ -6,10 +6,12 @@ import { useReducedMotion } from '../lib/motion';
 import { success } from '../lib/haptics';
 import { useTheme, spacing, radius } from '../theme';
 import { T } from './ui';
+import { useT } from '../lib/i18n';
 
 /** Shown on a fresh result: the flame pops in and the streak count is celebrated. */
 export default function StreakCelebration() {
   const c = useTheme();
+  const { t } = useT();
   const reduced = useReducedMotion();
   const { data } = useProgress();
   const streak = data?.progress?.streak;
@@ -35,7 +37,7 @@ export default function StreakCelebration() {
   return (
     <Animated.View
       accessibilityLiveRegion="polite"
-      accessibilityLabel={`${n}-day streak${best ? ', your best yet' : ''}`}
+      accessibilityLabel={`${t('streak.days', { n })}${best ? `. ${t('streak.best')}` : ''}`}
       style={{ opacity: pop, transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }], marginTop: spacing.md }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: c.accentSoft, borderWidth: 1, borderColor: c.accent }}>
@@ -43,8 +45,8 @@ export default function StreakCelebration() {
           <Ionicons name="flame" size={36} color={c.accent} />
         </Animated.View>
         <View style={{ flex: 1 }}>
-          <T variant="title">{n}-day streak{best ? '!' : ''}</T>
-          <T variant="small" color="textSecondary">{best ? 'Your best yet. ' : ''}Come back tomorrow to keep it going.</T>
+          <T variant="title">{t('streak.days', { n })}{best ? '!' : ''}</T>
+          <T variant="small" color="textSecondary">{best ? t('streak.best') : ''}{t('streak.comeBack')}</T>
         </View>
       </View>
     </Animated.View>

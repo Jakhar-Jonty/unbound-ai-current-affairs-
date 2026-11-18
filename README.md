@@ -67,6 +67,26 @@ Readers choose the language in the app (intro, Profile, or the switch on each ar
 
 With Gemini's free tier (20 requests a day), each translated article uses one request, on top of article generation. Lower `TRANSLATE_BATCH_SIZE` or move to a paid tier if generation needs the quota.
 
+### Weekly mock test
+
+Every Sunday at 08:00 IST the `weekly-mock` job builds a Prelims-style test from the week's published questions: up to 50 (`MOCK_SIZE`), spread across subjects, and at least 10 or it skips the week.
+
+- **Timing and marking:** 72 seconds per question (the Prelims pace), +2 correct, −⅔ wrong, 0 skipped. One attempt per user; guests must sign in.
+- **No peeking:** questions are sent only after `POST /quizzes/:id/start`, which starts a server-side clock. A submission later than the limit plus 2 minutes is saved but not ranked.
+- **Results:** marks, correct/wrong/skipped, rank and percentile among on-time takers, and the top 10. Mock attempts count toward the streak but not the daily-quiz leaderboard.
+
+### Reminders
+
+Push notifications go only to users with the app installed, in their language (`lang` on the account, set by the app), and each one is sent at most once (`PushReceipt`):
+- **07:00** (with `daily-quiz`): today's quiz is live.
+- **20:00** (`daily-reminder`): to active users (last 14 days) who haven't done today's quiz, with their streak ("Don't lose your 6-day streak") when they have one.
+- **Sunday** (with `weekly-mock`): the new mock test is live. **Saturday 18:00** (`mock-reminder`): to those who haven't taken it.
+- Users can turn off the daily reminder and the mock alerts in the app (Profile → Notifications), stored as `notificationPrefs`.
+
+### Audio briefing
+
+`GET /briefing/today` (Premium) returns a short script: an intro, up to six recent stories (title, summary and three key points each) and an outro. The app reads it with the phone's own text-to-speech, so there are no audio files to produce or host. In Hindi, only articles with published Hindi are included.
+
 ### Free and Premium
 
 | | Free | Premium (₹49/month or ₹499/year) |
@@ -75,9 +95,11 @@ With Gemini's free tier (20 requests a day), each translated article uses one re
 | Weekly leaderboard | ✓ | ✓ |
 | Practice by subject | 10 questions a day | Unlimited |
 | Saved articles and questions | 20 | Unlimited |
+| Weekly mock test | ✓ | ✓ |
 | Offline reading | – | ✓ |
 | Weak-topic insights | – | ✓ |
-| AI tutor, audio briefings | – | When they launch |
+| Daily audio briefing | – | ✓ |
+| AI tutor | – | When it launches |
 
 - Limits are enforced on the server (`src/modules/billing/entitlements.js`) and set in `.env`. Limited endpoints return `403` with `error.code = "premium_required"` and `details.feature`, and the app shows an upgrade prompt.
 - **`PREMIUM_ENABLED=false` (the default) unlocks everything for everyone.** Turn it on once payments work.
@@ -198,7 +220,7 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | POST | `/auth/password/forgot` | `{ email }` → always 202; emails a 6-digit code (15 min, single use, 5 tries) |
 | POST | `/auth/password/reset` | `{ email, code, password }` → `{ user, token }`; signs out other sessions |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` → `{ user, token }`; signs out other sessions |
-| PATCH | `/auth/me` | `{ name?, showOnLeaderboard?, preferredSubjects? }` |
+| PATCH | `/auth/me` | `{ name?, showOnLeaderboard?, preferredSubjects?, lang?, notificationPrefs? }` |
 | DELETE | `/auth/me` | `{ password }` permanently deletes the account and personal data |
 | GET | `/taxonomy` | GS papers and subjects |
 | GET | `/articles` | Published articles with `readingMinutes`; filters `subject` or `subjects` (comma-separated), `gsPaper`, `q` (text search), `from`, `to` |
@@ -208,6 +230,9 @@ All endpoints are under `/api/v1`. Authenticated endpoints take `Authorization: 
 | GET | `/quizzes/today` | Today's daily quiz (IST), without answers; `myAttempt` if signed in |
 | GET | `/quizzes/:id` | A quiz, without answers |
 | POST | `/quizzes/:id/check` | Guests: grade answers without saving (same result shape, `id: null`); rate-limited per IP |
+| GET | `/quizzes/mock/current` | The latest weekly mock (no questions until started) |
+| POST | `/quizzes/:id/start` | Start a mock test: starts the timer and returns the questions |
+| GET | `/briefing/today` | Premium: today's audio briefing script (`?lang=hi`) |
 | POST | `/quizzes/:id/attempts` | `{ answers: [{ questionId, selectedIndex \| null, timeMs? }], durationMs? }` → result with explanations. One attempt per quiz |
 | GET | `/attempts/:id` | Your result, with explanations and any corrections made since |
 | GET | `/me/attempts` | Your attempt history |

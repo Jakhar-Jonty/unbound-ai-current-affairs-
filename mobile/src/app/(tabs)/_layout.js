@@ -1,17 +1,19 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../theme';
+import { useT } from '../../lib/i18n';
 
 const TABS = [
-  { name: 'index', title: 'Today', icon: 'sunny' },
-  { name: 'explore', title: 'Explore', icon: 'compass' },
-  { name: 'quizzes', title: 'Quizzes', icon: 'checkbox' },
-  { name: 'saved', title: 'Saved', icon: 'bookmark' },
-  { name: 'profile', title: 'Profile', icon: 'person' },
+  { name: 'index', title: 'tabs.today', icon: 'sunny' },
+  { name: 'explore', title: 'tabs.explore', icon: 'compass' },
+  { name: 'quizzes', title: 'tabs.quizzes', icon: 'checkbox' },
+  { name: 'saved', title: 'tabs.saved', icon: 'bookmark' },
+  { name: 'profile', title: 'tabs.profile', icon: 'person' },
 ];
 
 export default function TabLayout() {
   const c = useTheme();
+  const { t } = useT();
   return (
     <Tabs
       screenOptions={{
@@ -25,14 +27,14 @@ export default function TabLayout() {
         sceneStyle: { backgroundColor: c.background },
       }}
     >
-      {TABS.map((t) => (
+      {TABS.map((tab) => (
         <Tabs.Screen
-          key={t.name}
-          name={t.name}
+          key={tab.name}
+          name={tab.name}
           options={{
-            title: t.title,
+            title: t(tab.title),
             tabBarIcon: ({ focused, size }) => (
-              <Ionicons name={focused ? t.icon : `${t.icon}-outline`} size={size} color={focused ? c.accent : c.textSecondary} />
+              <Ionicons name={focused ? tab.icon : `${tab.icon}-outline`} size={size} color={focused ? c.accent : c.textSecondary} />
             ),
           }}
         />

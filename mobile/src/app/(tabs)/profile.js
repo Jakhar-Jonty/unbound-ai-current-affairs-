@@ -11,6 +11,7 @@ import VerifyEmailBanner from '../../components/VerifyEmailBanner';
 import LanguageSwitch from '../../components/LanguageSwitch';
 import { formatDate, shortName } from '../../lib/format';
 import { useMySubjects } from '../../lib/subjects-pref';
+import { useT } from '../../lib/i18n';
 import { Button, Card, Divider, ErrorView, Loading, ProgressBar, Screen, SectionTitle, T } from '../../components/ui';
 
 function AccountRow({ icon, label, onPress, danger }) {
@@ -26,6 +27,35 @@ function AccountRow({ icon, label, onPress, danger }) {
   );
 }
 
+function LinkCard({ icon, title, sub, onPress, label }) {
+  const c = useTheme();
+  return (
+    <Card onPress={onPress} accessibilityLabel={label || title} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
+      <Ionicons name={icon} size={22} color={c.text} />
+      <View style={{ flex: 1 }}>
+        <T variant="heading">{title}</T>
+        <T variant="small" color="textSecondary" numberOfLines={1}>{sub}</T>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+    </Card>
+  );
+}
+
+function LanguageCard() {
+  const c = useTheme();
+  const { t } = useT();
+  return (
+    <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
+      <Ionicons name="language-outline" size={22} color={c.text} />
+      <View style={{ flex: 1 }}>
+        <T variant="heading">{t('profile.language')}</T>
+        <T variant="small" color="textSecondary">{t('profile.languageSub')}</T>
+      </View>
+      <LanguageSwitch compact />
+    </Card>
+  );
+}
+
 function Stat({ label, value }) {
   return (
     <View style={{ flex: 1 }}>
@@ -37,6 +67,7 @@ function Stat({ label, value }) {
 
 export default function Profile() {
   const c = useTheme();
+  const { t, lang } = useT();
   const { user, signedIn, signOut, updateProfile } = useAuth();
   const { data: taxonomy } = useTaxonomy();
   const { subjects: mySubjects } = useMySubjects();
@@ -44,60 +75,67 @@ export default function Profile() {
   const version = Constants.expoConfig?.version;
 
   if (!signedIn) {
-    return <Screen><T variant="display">Profile</T><SignInPrompt title="Track your progress" message="Sign in to see your accuracy by subject and your quiz history." /></Screen>;
+    return (
+      <Screen>
+        <T variant="display">{t('profile.title')}</T>
+        <LanguageCard />
+        <SignInPrompt title={t('profile.trackTitle')} message={t('profile.trackMessage')} />
+      </Screen>
+    );
   }
   const p = data?.progress;
   const subjects = [...(p?.bySubject || [])].sort((a, b) => b.seen - a.seen);
+  const prem = user.premium || {};
 
   return (
     <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={isRefetching} onRefresh={refetch} />}>
-      <T variant="display">{user.name || 'Profile'}</T>
+      <T variant="display">{user.name || t('profile.title')}</T>
       {user.email ? <T color="textSecondary" style={{ marginBottom: spacing.md }}>{user.email}</T> : null}
       <VerifyEmailBanner />
 
-      <Card onPress={() => router.push('/premium')} accessibilityLabel="Premium" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderColor: c.accent }}>
+      <Card onPress={() => router.push('/premium')} accessibilityLabel={t('profile.premium')} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderColor: c.accent }}>
         <Ionicons name="sparkles" size={22} color={c.accent} />
         <View style={{ flex: 1 }}>
-          <T variant="heading">{user.premium?.active && user.premium?.source ? 'Premium' : user.premium?.active ? 'All features unlocked' : 'Upgrade to Premium'}</T>
+          <T variant="heading">{prem.active && prem.source ? t('profile.premium') : prem.active ? t('profile.allUnlocked') : t('profile.upgrade')}</T>
           <T variant="small" color="textSecondary">
-            {user.premium?.active && user.premium?.until
-              ? `${user.premium.status === 'cancelled' ? 'Ends' : 'Renews'} ${formatDate(user.premium.until)}`
-              : user.premium?.active ? 'Every feature is free right now' : 'Full archive, unlimited practice, offline reading, insights'}
+            {prem.active && prem.until
+              ? t(prem.status === 'cancelled' ? 'profile.ends' : 'profile.renews', { date: formatDate(prem.until) })
+              : prem.active ? t('profile.freeNow') : t('profile.premiumPitch')}
           </T>
         </View>
         <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
       </Card>
 
-      <SectionTitle>Your progress</SectionTitle>
+      <SectionTitle>{t('profile.progress')}</SectionTitle>
       {isLoading ? <Loading /> : error ? <ErrorView error={error} onRetry={refetch} /> : (
         <>
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md, backgroundColor: c.inverse, borderColor: c.inverse }}>
             <Ionicons name="flame" size={32} color={c.accent} />
             <View style={{ flex: 1 }}>
-              <T variant="title" color={c.onInverse}>{p.streak?.current || 0}-day streak</T>
+              <T variant="title" color={c.onInverse}>{t('streak.days', { n: p.streak?.current || 0 })}</T>
               <T variant="small" color={c.onInverse} style={{ opacity: 0.8 }}>
-                {p.streak?.current ? 'Take today’s quiz to keep it going.' : 'Take a quiz today to start a streak.'} Best: {p.streak?.best || 0} {p.streak?.best === 1 ? 'day' : 'days'}.
+                {p.streak?.current ? t('streak.keepGoing') : t('streak.start')} {t('streak.bestDays', { n: p.streak?.best || 0 })}
               </T>
             </View>
           </Card>
           <Card style={{ flexDirection: 'row' }}>
-            <Stat label="Quizzes" value={p.quizzesTaken} />
-            <Stat label="Questions" value={p.questionsSeen} />
-            <Stat label="Accuracy" value={p.accuracy == null ? '–' : `${p.accuracy}%`} />
+            <Stat label={t('profile.quizzes')} value={p.quizzesTaken} />
+            <Stat label={t('profile.questions')} value={p.questionsSeen} />
+            <Stat label={t('profile.accuracy')} value={p.accuracy == null ? '–' : `${p.accuracy}%`} />
           </Card>
           {p.practice?.answered ? (
             <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm }}>
-              Plus {p.practice.answered} practice {p.practice.answered === 1 ? 'question' : 'questions'} ({p.practice.correct} correct). Subject accuracy below includes practice.
+              {t('profile.practicePlus', { n: p.practice.answered, c: p.practice.correct })}
             </T>
           ) : null}
           {subjects.length ? (
             <>
-              <SectionTitle>Accuracy by subject</SectionTitle>
+              <SectionTitle>{t('profile.bySubject')}</SectionTitle>
               <Card>
                 {subjects.map((s, i) => (
                   <View key={s.subject} style={{ marginTop: i ? spacing.lg : 0 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs }}>
-                      <T variant="small" style={{ fontWeight: '600', flex: 1 }}>{subjectLabel(taxonomy, s.subject)}</T>
+                      <T variant="small" style={{ fontWeight: '600', flex: 1 }}>{subjectLabel(taxonomy, s.subject, lang)}</T>
                       <T variant="small" color="textSecondary">{s.correct}/{s.seen} · {s.accuracy}%</T>
                     </View>
                     <ProgressBar value={s.accuracy || 0} />
@@ -105,49 +143,27 @@ export default function Profile() {
                 ))}
               </Card>
             </>
-          ) : <T variant="small" color="textSecondary" style={{ marginTop: spacing.md }}>Take your first quiz to see accuracy by subject.</T>}
+          ) : <T variant="small" color="textSecondary" style={{ marginTop: spacing.md }}>{t('profile.firstQuiz')}</T>}
         </>
       )}
 
-      <Card onPress={() => router.push('/insights')} accessibilityLabel="Your insights" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
-        <Ionicons name="analytics-outline" size={22} color={c.text} />
-        <View style={{ flex: 1 }}>
-          <T variant="heading">Your insights</T>
-          <T variant="small" color="textSecondary">Weak topics, trends and questions to revisit</T>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-      </Card>
+      <LinkCard icon="analytics-outline" title={t('profile.insights')} sub={t('profile.insightsSub')} onPress={() => router.push('/insights')} />
+      <LinkCard icon="options-outline" title={t('profile.subjects')}
+        sub={mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k, lang)).join(', ') : t('profile.subjectsEmpty')}
+        onPress={() => router.push('/account/subjects')} />
+      <LanguageCard />
+      <LinkCard icon="notifications-outline" title={t('profile.notifications')} sub={t('profile.notificationsSub')} onPress={() => router.push('/account/notifications')} />
 
-      <Card onPress={() => router.push('/account/subjects')} accessibilityLabel="My subjects" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
-        <Ionicons name="options-outline" size={22} color={c.text} />
-        <View style={{ flex: 1 }}>
-          <T variant="heading">My subjects</T>
-          <T variant="small" color="textSecondary" numberOfLines={1}>
-            {mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k)).join(', ') : 'Choose subjects for your “For you” feed'}
-          </T>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-      </Card>
-
-      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
-        <Ionicons name="language-outline" size={22} color={c.text} />
-        <View style={{ flex: 1 }}>
-          <T variant="heading">Language · भाषा</T>
-          <T variant="small" color="textSecondary">For articles, quizzes and practice</T>
-        </View>
-        <LanguageSwitch compact />
-      </Card>
-
-      <SectionTitle>Account</SectionTitle>
+      <SectionTitle>{t('profile.account')}</SectionTitle>
       <Card style={{ paddingVertical: spacing.xs }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md }}>
           <Ionicons name="trophy-outline" size={20} color={c.text} />
           <View style={{ flex: 1 }}>
-            <T>Show me on the leaderboard</T>
-            <T variant="small" color="textSecondary">Shown as “{shortName(user.name)}”</T>
+            <T>{t('profile.showOnBoard')}</T>
+            <T variant="small" color="textSecondary">{t('profile.shownAs', { name: shortName(user.name) })}</T>
           </View>
           <Switch
-            accessibilityLabel="Show me on the leaderboard"
+            accessibilityLabel={t('profile.showOnBoard')}
             value={user.showOnLeaderboard !== false}
             onValueChange={(v) => updateProfile({ showOnLeaderboard: v }).catch(() => {})}
             trackColor={{ true: c.accent, false: c.border }}
@@ -156,13 +172,13 @@ export default function Profile() {
           />
         </View>
         <View style={{ height: 1, backgroundColor: c.border }} />
-        <AccountRow icon="key-outline" label={user.hasPassword === false ? 'Set a password' : 'Change password'} onPress={() => router.push('/account/password')} />
+        <AccountRow icon="key-outline" label={user.hasPassword === false ? t('profile.setPassword') : t('profile.changePassword')} onPress={() => router.push('/account/password')} />
         <View style={{ height: 1, backgroundColor: c.border }} />
-        <AccountRow icon="trash-outline" label="Delete account" danger onPress={() => router.push('/account/delete')} />
+        <AccountRow icon="trash-outline" label={t('profile.delete')} danger onPress={() => router.push('/account/delete')} />
       </Card>
       <Divider />
-      <Button title="Sign out" variant="outline" icon="log-out-outline" onPress={signOut} />
-      <T variant="caption" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.lg }}>Version {version}</T>
+      <Button title={t('profile.signOut')} variant="outline" icon="log-out-outline" onPress={signOut} />
+      <T variant="caption" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.lg }}>{t('common.version', { v: version })}</T>
     </Screen>
   );
 }

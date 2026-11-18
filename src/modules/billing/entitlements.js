@@ -38,7 +38,7 @@ function premiumRequired(feature) {
     .replace('{days}', p.freeArchiveDays)
     .replace('{bookmarks}', `${p.freeBookmarks} ${p.freeBookmarks === 1 ? 'item' : 'items'}`)
     .replace('{practice}', `${p.freePracticePerDay} ${p.freePracticePerDay === 1 ? 'question' : 'questions'}`);
-  return new AppError(403, 'premium_required', message, { feature });
+  return new AppError(403, 'premium_required', message, { feature, days: p.freeArchiveDays, bookmarks: p.freeBookmarks, practicePerDay: p.freePracticePerDay });
 }
 
 /** Limits that apply to this user (null = unlimited). */
