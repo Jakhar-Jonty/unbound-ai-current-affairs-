@@ -47,10 +47,10 @@ Expo SDK 58 needs **Node.js 22.13 or newer** (the backend works on Node 20+). Wi
 ```bash
 cd mobile
 npm install
-EXPO_PUBLIC_API_URL=http://<your-computer-ip>:4000 npx expo start
+npx expo start
 ```
 
-Scan the QR code with a development build or Expo Go. On a phone, `localhost` means the phone itself, so use your computer's LAN IP (or the deployed API URL). For the web version, run `npx expo start --web` and add `http://localhost:8081` to the backend's `CORS_ORIGINS`.
+Scan the QR code with a development build or Expo Go, or press `a` for the Android emulator. In development the app finds the backend on its own: it uses the address of the computer running Metro, on port 4000, so it keeps working when your Wi-Fi (and IP) changes. Metro's log shows `[api] Using backend …` at startup. To point it somewhere else (a deployed API, or a different port), set `EXPO_PUBLIC_API_URL=https://…` (or `EXPO_PUBLIC_API_PORT`) when you start Expo. For the web version, run `npx expo start --web` and add `http://localhost:8081` to the backend's `CORS_ORIGINS`.
 
 Other commands: `npx expo lint`, `npx expo export` (checks that the Android, iOS and web bundles compile).
 
