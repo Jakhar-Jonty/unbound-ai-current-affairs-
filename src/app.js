@@ -67,6 +67,7 @@ function createApp() {
   v1.use(require('./modules/practice/practice.routes'));
   v1.use(require('./modules/billing/billing.routes'));
   v1.use(require('./modules/insights/insights.routes'));
+  v1.use(require('./modules/briefing/briefing.routes'));
   v1.use('/admin', require('./modules/admin/admin.routes'));
   app.use('/api/v1', v1);
 

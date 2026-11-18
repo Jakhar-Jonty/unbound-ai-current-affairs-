@@ -238,6 +238,25 @@ async function progressFor(userId) {
  * not been used in a daily quiz yet, spreading picks across subjects. Safe to re-run:
  * a unique index allows only one daily quiz per date.
  */
+/** Picks up to `size` questions round-robin by primary subject, so one busy topic doesn't dominate. */
+function spreadBySubject(candidates, size) {
+  const buckets = new Map();
+  for (const q of candidates) {
+    const key = q.tags?.subjects?.[0] || 'other';
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(q);
+  }
+  const picked = [];
+  while (picked.length < size && buckets.size) {
+    for (const [key, list] of buckets) {
+      if (picked.length >= size) break;
+      picked.push(list.shift());
+      if (!list.length) buckets.delete(key);
+    }
+  }
+  return picked;
+}
+
 async function assembleDailyQuiz({ date = localDateString(), size = config.pipeline.dailyQuizSize, lookbackDays = 3 } = {}) {
   const existing = await Quiz.findOne({ type: 'daily', date }).lean();
   if (existing) return { created: false, quiz: existing, reason: 'already_exists' };
@@ -254,21 +273,7 @@ async function assembleDailyQuiz({ date = localDateString(), size = config.pipel
     .lean();
   if (!candidates.length) return { created: false, reason: 'no_questions' };
 
-  // Round-robin by primary subject so one busy topic doesn't dominate the quiz.
-  const buckets = new Map();
-  for (const q of candidates) {
-    const key = q.tags?.subjects?.[0] || 'other';
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(q);
-  }
-  const picked = [];
-  while (picked.length < size && buckets.size) {
-    for (const [key, list] of buckets) {
-      if (picked.length >= size) break;
-      picked.push(list.shift());
-      if (!list.length) buckets.delete(key);
-    }
-  }
+  const picked = spreadBySubject(candidates, size);
 
   try {
     const quiz = await Quiz.create({
@@ -288,4 +293,4 @@ async function assembleDailyQuiz({ date = localDateString(), size = config.pipel
   }
 }
 
-module.exports = { checkAnswers, computeStreak, toPlayable, loadQuizWithQuestions, submitAttempt, attemptResult, progressFor, assembleDailyQuiz };
+module.exports = { spreadBySubject, gradeAnswers, checkAnswers, computeStreak, toPlayable, loadQuizWithQuestions, submitAttempt, attemptResult, progressFor, assembleDailyQuiz };

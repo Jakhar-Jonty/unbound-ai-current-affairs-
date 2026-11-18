@@ -29,6 +29,15 @@ const attemptSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     durationMs: Number,
     submittedAt: { type: Date, default: Date.now },
+    // Mock tests: UPSC-style marks (+2 correct, −2/3 wrong) and whether it finished on time.
+    mock: {
+      marks: Number,
+      maxMarks: Number,
+      correct: Number,
+      wrong: Number,
+      unanswered: Number,
+      late: Boolean,
+    },
   },
   { timestamps: true },
 );
@@ -36,4 +45,14 @@ const attemptSchema = new mongoose.Schema(
 attemptSchema.index({ user: 1, quiz: 1 }, { unique: true });
 attemptSchema.index({ user: 1, submittedAt: -1 });
 
-module.exports = { Attempt: mongoose.model('Attempt', attemptSchema) };
+attemptSchema.index({ quiz: 1, 'mock.marks': -1 });
+
+/** When a user started a timed mock test (server clock), so the time limit can be checked. */
+const quizStartSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  quiz: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz', required: true },
+  startedAt: { type: Date, default: Date.now },
+});
+quizStartSchema.index({ user: 1, quiz: 1 }, { unique: true });
+
+module.exports = { Attempt: mongoose.model('Attempt', attemptSchema), QuizStart: mongoose.model('QuizStart', quizStartSchema) };

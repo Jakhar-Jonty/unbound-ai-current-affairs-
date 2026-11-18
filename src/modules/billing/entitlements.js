@@ -29,6 +29,7 @@ const FEATURES = {
   practice: 'You’ve used today’s free practice ({practice}). Upgrade for unlimited practice.',
   insights: 'Detailed insights into your weak topics are part of Premium.',
   offline: 'Offline reading is part of Premium.',
+  audio: 'The daily audio briefing is part of Premium.',
 };
 
 function premiumRequired(feature) {
@@ -51,6 +52,7 @@ function limitsFor(user) {
     practicePerDay: premium ? null : p.freePracticePerDay,
     offline: premium,
     insights: premium,
+    audio: premium,
   };
 }
 
