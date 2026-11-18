@@ -23,8 +23,7 @@ Follow [../DEPLOY.md](../DEPLOY.md). Done when:
 
 - [ ] Real logo in `mobile/assets/` (icon, Android adaptive icon layers, splash, favicon)
 - [ ] Expo account: `cd mobile && npx eas-cli login && npx eas-cli init` (adds `extra.eas.projectId` to `app.json`; needed for push)
-- [ ] Push: create a Firebase project, add an Android app with package `com.unbound.daily`, then upload the FCM V1 service-account key with `npx eas-cli credentials` (Android → Push Notifications). Set `PUSH_ENABLED=true` on the server
-- [ ] Google sign-in (optional for v1): create OAuth client IDs (web + Android with the **Play App Signing SHA-1** from Play Console → App integrity), put them in `app.json → extra.googleClientIds` and `GOOGLE_CLIENT_IDS` on the server
+- [ ] Push and Google sign-in: follow [../GOOGLE.md](../GOOGLE.md) (Firebase project, `google-services.json`, FCM key, OAuth clients). Add the Play signing SHA-1 after the first upload
 - [ ] Test build on a real phone: `npx eas-cli build -p android --profile preview` (installable APK pointing at production)
 - [ ] Production build: `npx eas-cli build -p android --profile production` (AAB; the version code increases automatically)
 

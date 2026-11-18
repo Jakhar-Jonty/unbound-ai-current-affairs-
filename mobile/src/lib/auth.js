@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, setAuthToken, setUnauthorizedHandler } from './api';
+import { googleSignOut } from './google';
 import { getItem, setItem, removeItem } from './storage';
 import { registerForPush, unregisterPush } from './push';
 import { clearOffline, setOfflineAllowed } from './offline';
@@ -83,7 +84,7 @@ export function AuthProvider({ children }) {
     signedIn: !!state.user,
     signIn: async (email, password) => startSession(await api('/auth/login', { method: 'POST', body: { email, password } })),
     register: async (name, email, password) => startSession(await api('/auth/register', { method: 'POST', body: { name, email, password } })),
-    signOut: async () => { await unregisterPush(); await clearOffline(); await clearReading(); await clear(); },
+    signOut: async () => { await unregisterPush(); await clearOffline(); await clearReading(); await googleSignOut(); await clear(); },
     // Reloads the profile (e.g. after buying Premium or verifying email).
     refreshUser: async () => {
       const { user } = await api('/auth/me');
