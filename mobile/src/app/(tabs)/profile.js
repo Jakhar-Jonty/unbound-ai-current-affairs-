@@ -42,6 +42,36 @@ function LinkCard({ icon, title, sub, onPress, label }) {
   );
 }
 
+/** One row inside a grouped settings card. */
+function GroupRow({ icon, title, sub, onPress, right, first }) {
+  const c = useTheme();
+  const body = (
+    <>
+      <Ionicons name={icon} size={20} color={c.text} />
+      <View style={{ flex: 1 }}>
+        <T style={{ fontWeight: '600' }}>{title}</T>
+        {sub ? <T variant="small" color="textSecondary" numberOfLines={1}>{sub}</T> : null}
+      </View>
+      {right || <Ionicons name="chevron-forward" size={18} color={c.textMuted} />}
+    </>
+  );
+  const style = { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: first ? 0 : 1, borderTopColor: c.border };
+  if (!onPress) return <View style={style}>{body}</View>;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={({ pressed }) => [style, { opacity: pressed ? 0.7 : 1 }]}>{body}</Pressable>
+  );
+}
+
+function Avatar({ name }) {
+  const c = useTheme();
+  const initials = (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no" style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+      <T variant="title" color={c.onAccent}>{initials}</T>
+    </View>
+  );
+}
+
 function LanguageCard() {
   const c = useTheme();
   const { t } = useT();
@@ -91,8 +121,13 @@ export default function Profile() {
 
   return (
     <Screen refreshControl={<RefreshControl tintColor={c.accent} refreshing={isRefetching} onRefresh={refetch} />}>
-      <T variant="display">{user.name || t('profile.title')}</T>
-      {user.email ? <T color="textSecondary" style={{ marginBottom: spacing.md }}>{user.email}</T> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg }}>
+        <Avatar name={user.name} />
+        <View style={{ flex: 1 }}>
+          <T variant="title" numberOfLines={1}>{user.name || t('profile.title')}</T>
+          {user.email ? <T variant="small" color="textSecondary" numberOfLines={1}>{user.email}</T> : null}
+        </View>
+      </View>
       <VerifyEmailBanner />
 
       <Card onPress={() => router.push('/premium')} accessibilityLabel={t('profile.premium')} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderColor: c.accent }}>
@@ -114,9 +149,9 @@ export default function Profile() {
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.md, backgroundColor: c.inverse, borderColor: c.inverse }}>
             <Ionicons name="flame" size={32} color={c.accent} />
             <View style={{ flex: 1 }}>
-              <T variant="title" color={c.onInverse}>{t('streak.days', { n: p.streak?.current || 0 })}</T>
+              <T variant="title" color={c.onInverse}>{p.streak?.current ? t('streak.days', { n: p.streak.current }) : t('streak.startTitle')}</T>
               <T variant="small" color={c.onInverse} style={{ opacity: 0.8 }}>
-                {p.streak?.current ? t('streak.keepGoing') : t('streak.start')} {t('streak.bestDays', { n: p.streak?.best || 0 })}
+                {p.streak?.current ? t('streak.keepGoing') : t('streak.start')}{p.streak?.best ? ` ${t('streak.bestDays', { n: p.streak.best })}` : ''}
               </T>
             </View>
           </Card>
@@ -150,11 +185,15 @@ export default function Profile() {
       )}
 
       <LinkCard icon="analytics-outline" title={t('profile.insights')} sub={t('profile.insightsSub')} onPress={() => router.push('/insights')} />
-      <LinkCard icon="options-outline" title={t('profile.subjects')}
-        sub={mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k, lang)).join(', ') : t('profile.subjectsEmpty')}
-        onPress={() => router.push('/account/subjects')} />
-      <LanguageCard />
-      <LinkCard icon="notifications-outline" title={t('profile.notifications')} sub={t('profile.notificationsSub')} onPress={() => router.push('/account/notifications')} />
+
+      <SectionTitle>{t('profile.preferences')}</SectionTitle>
+      <Card style={{ paddingVertical: spacing.xs }}>
+        <GroupRow first icon="options-outline" title={t('profile.subjects')}
+          sub={mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k, lang)).join(', ') : t('profile.subjectsEmpty')}
+          onPress={() => router.push('/account/subjects')} />
+        <GroupRow icon="language-outline" title={t('profile.language')} right={<LanguageSwitch compact />} />
+        <GroupRow icon="notifications-outline" title={t('profile.notifications')} sub={t('profile.notificationsSub')} onPress={() => router.push('/account/notifications')} />
+      </Card>
 
       <SectionTitle>{t('profile.account')}</SectionTitle>
       <Card style={{ paddingVertical: spacing.xs }}>

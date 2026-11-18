@@ -3,7 +3,7 @@ import { Animated, Pressable, Share, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useArticle, useRelated, useTaxonomy } from '../../lib/queries';
+import { useArticle, useRelated } from '../../lib/queries';
 import { saveProgress } from '../../lib/reading';
 import { formatDate } from '../../lib/format';
 import { useTheme, spacing, radius } from '../../theme';
@@ -11,16 +11,15 @@ import BookmarkButton from '../../components/BookmarkButton';
 import { PremiumGate, isPremiumError } from '../../components/Premium';
 import { TEXT_SCALES, usePrefs } from '../../lib/prefs';
 import { tap } from '../../lib/haptics';
-import ArticleCard, { paperLabel, subjectLabel } from '../../components/ArticleCard';
+import ArticleCard, { ArticleMeta } from '../../components/ArticleCard';
 import LanguageSwitch from '../../components/LanguageSwitch';
 import { errorText, useT } from '../../lib/i18n';
-import { Card, Divider, ErrorView, Loading, OfflineNote, Screen, SectionTitle, Tag, T } from '../../components/ui';
+import { Card, Divider, ErrorView, Loading, OfflineNote, Screen, SectionTitle, T } from '../../components/ui';
 
 export default function ArticleScreen() {
   const c = useTheme();
   const { id } = useLocalSearchParams();
   const { data: a, isLoading, error, refetch } = useArticle(id);
-  const { data: taxonomy } = useTaxonomy();
   const { prefs, update } = usePrefs();
   const { t, lang } = useT();
   const { data: related } = useRelated(a?.offline ? null : a?.id);
@@ -98,28 +97,29 @@ export default function ArticleScreen() {
           </Card>
         ) : null}
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
-          <Tag label={paperLabel(a.tags?.gsPaper, lang)} />
-          {(a.tags?.subjects || []).map((s) => <Tag key={s} label={subjectLabel(taxonomy, s, lang)} />)}
-        </View>
-        <T variant="title" style={{ marginTop: spacing.md }} accessibilityRole="header">{a.title}</T>
+        <ArticleMeta article={a} all />
+        <T variant="display" style={{ marginTop: spacing.md, fontSize: 28 * Math.min(scale, 1.15), lineHeight: 35 * Math.min(scale, 1.15) }} accessibilityRole="header">{a.title}</T>
         <T variant="small" color="textSecondary" style={{ marginTop: spacing.xs }}>
           {formatDate(a.publishedAt)}{a.readingMinutes ? ` · ${t('art.minRead', { n: a.readingMinutes })}` : ''}{a.version > 1 ? ` · ${t('art.updated', { date: formatDate(a.updatedAt) })}` : ''}
         </T>
 
         <View style={{ borderLeftWidth: 3, borderLeftColor: c.accent, paddingLeft: spacing.md, marginTop: spacing.lg }}>
-          <T style={[read, { fontWeight: '600' }]}>{a.summary}</T>
+          <T style={[read, { fontSize: read.fontSize + 1, lineHeight: read.lineHeight + 2 }]}>{a.summary}</T>
         </View>
 
         {a.keyPoints?.length ? (
           <>
             <SectionTitle>{t('art.keyPoints')}</SectionTitle>
-            {a.keyPoints.map((k, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.accent, marginTop: 10 }} />
-                <T style={[read, { flex: 1 }]}>{k}</T>
-              </View>
-            ))}
+            <Card style={{ paddingVertical: spacing.md }}>
+              {a.keyPoints.map((k, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, borderTopWidth: i ? 1 : 0, borderTopColor: c.border }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center', marginTop: 2 }}>
+                    <T variant="caption" style={{ fontWeight: '800' }}>{i + 1}</T>
+                  </View>
+                  <T style={[read, { flex: 1 }]}>{k}</T>
+                </View>
+              ))}
+            </Card>
           </>
         ) : null}
 

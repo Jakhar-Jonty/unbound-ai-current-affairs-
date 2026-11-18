@@ -256,7 +256,7 @@ export default function QuizScreen() {
       <Screen edges={[]}>
         <ProgressBar value={index + 1} max={questions.length} />
         <FadeIn key={q.id}>
-          <T variant="heading" style={{ marginTop: spacing.xl, marginBottom: spacing.lg }} accessibilityRole="header">{q.stem}</T>
+          <T style={{ marginTop: spacing.xl, marginBottom: spacing.lg, fontSize: 17, lineHeight: 27, fontWeight: '500' }} accessibilityRole="header">{q.stem}</T>
           <View accessibilityRole="radiogroup" style={{ gap: spacing.sm }}>
             {q.options.map((opt, i) => {
               const selected = answers[q.id] === i;

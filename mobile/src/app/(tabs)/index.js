@@ -82,7 +82,9 @@ function FeedSwitch({ value, onChange, hasSubjects }) {
     );
   };
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.xl, marginBottom: spacing.sm }}>
+    <>
+    <SectionTitle>{t('today.latest')}</SectionTitle>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
       <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 4, padding: 3, borderRadius: radius.pill, borderWidth: 1, borderColor: c.border }}>
         {opt('foryou', t('today.forYou'))}
         {opt('all', t('today.all'))}
@@ -93,6 +95,7 @@ function FeedSwitch({ value, onChange, hasSubjects }) {
         </Pressable>
       ) : null}
     </View>
+    </>
   );
 }
 
@@ -109,12 +112,16 @@ export default function Today() {
   return (
     <ListScreen
       query={articles}
-      renderItem={({ item }) => <ArticleCard article={item} />}
+      renderItem={({ item, index }) => <ArticleCard article={item} featured={index === 0} />}
       header={
         <View>
-          <T variant="caption" color="textSecondary">{formatLongDate().toUpperCase()}</T>
-          <T variant="display" style={{ marginTop: spacing.xs, marginBottom: spacing.md }}>{firstName ? t('today.hello', { name: firstName }) : t('today.title')}</T>
-          {user ? <View style={{ marginBottom: spacing.md }}><StreakBadge /></View> : null}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.lg }}>
+            <View style={{ flex: 1 }}>
+              <T variant="caption" color="textSecondary">{formatLongDate().toUpperCase()}</T>
+              <T variant="display" style={{ marginTop: spacing.xs }} numberOfLines={1}>{firstName ? t('today.hello', { name: firstName }) : t('today.title')}</T>
+            </View>
+            {user ? <View style={{ marginBottom: 4 }}><StreakBadge compact /></View> : null}
+          </View>
           <VerifyEmailBanner />
           {!user ? <View style={{ height: spacing.sm }} /> : null}
           <TodayQuizCard />
