@@ -34,7 +34,7 @@ const fmtDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric',
 const FEATURES = ['Full archive of articles and daily quizzes', 'Unlimited practice by subject', 'Unlimited saved articles and questions', 'Read saved articles offline', 'Insights into your weak topics', 'AI tutor and audio briefings when they launch'];
 
 function shell(...children) {
-  app.replaceChildren(h('div', { class: 'brand' }, 'UNBOUND'), ...children);
+  app.replaceChildren(h('div', { class: 'brand' }, 'UNBOUND DAILY'), ...children);
 }
 
 function loginView(message) {
@@ -93,7 +93,7 @@ function buyView(plans, status) {
       const rzp = new window.Razorpay({
         key: s.keyId,
         subscription_id: s.subscriptionId,
-        name: 'Unbound Premium',
+        name: 'Unbound Daily Premium',
         description: `${s.plan.label} plan`,
         prefill: s.prefill,
         theme: { color: '#FF7928' },

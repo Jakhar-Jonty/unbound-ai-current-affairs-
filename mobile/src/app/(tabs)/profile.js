@@ -9,6 +9,7 @@ import { subjectLabel } from '../../components/ArticleCard';
 import SignInPrompt from '../../components/SignInPrompt';
 import VerifyEmailBanner from '../../components/VerifyEmailBanner';
 import LanguageSwitch from '../../components/LanguageSwitch';
+import LegalLinks from '../../components/LegalLinks';
 import { formatDate, shortName } from '../../lib/format';
 import { useMySubjects } from '../../lib/subjects-pref';
 import { useT } from '../../lib/i18n';
@@ -80,6 +81,7 @@ export default function Profile() {
         <T variant="display">{t('profile.title')}</T>
         <LanguageCard />
         <SignInPrompt title={t('profile.trackTitle')} message={t('profile.trackMessage')} />
+        <LegalLinks style={{ marginTop: spacing.xl }} />
       </Screen>
     );
   }
@@ -179,6 +181,7 @@ export default function Profile() {
       <Divider />
       <Button title={t('profile.signOut')} variant="outline" icon="log-out-outline" onPress={signOut} />
       <T variant="caption" color="textSecondary" style={{ textAlign: 'center', marginTop: spacing.lg }}>{t('common.version', { v: version })}</T>
+      <LegalLinks style={{ marginTop: spacing.sm }} />
     </Screen>
   );
 }

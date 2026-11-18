@@ -5,11 +5,12 @@ const config = require('../../config');
 const { badRequest, AppError } = require('../../lib/errors');
 
 /**
- * Short-lived 6-digit codes sent by email (password reset, email verification).
+ * Short-lived 6-digit codes sent by email (password reset, email verification,
+ * account deletion from the web).
  * Only an HMAC of the code is stored; codes are single use, expire, allow a limited
  * number of tries and can't be re-sent more than once a minute.
  */
-const PURPOSES = ['password_reset', 'verify_email'];
+const PURPOSES = ['password_reset', 'verify_email', 'delete_account'];
 const TTL_MS = 15 * 60 * 1000;
 const RESEND_AFTER_MS = 60 * 1000;
 const MAX_TRIES = 5;

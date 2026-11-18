@@ -81,8 +81,8 @@ test('Google sign-in creates, reuses and links accounts', async () => {
 });
 
 test('Apple sign-in uses the name sent by the app; passwordless accounts can set a password and delete with DELETE', async () => {
-  config.oauth.appleClientIds = ['com.unbound.currentaffairs'];
-  const sign = await makeIssuer('apple', 'com.unbound.currentaffairs', 'https://appleid.apple.com');
+  config.oauth.appleClientIds = ['com.unbound.daily'];
+  const sign = await makeIssuer('apple', 'com.unbound.daily', 'https://appleid.apple.com');
   const r = await http().post('/api/v1/auth/apple').send({ identityToken: await sign({ sub: 'a-1', email: 'xyz@privaterelay.appleid.com', email_verified: 'true' }), fullName: 'Ravi Kumar' });
   assert.equal(r.status, 200);
   assert.equal(r.body.user.name, 'Ravi Kumar');

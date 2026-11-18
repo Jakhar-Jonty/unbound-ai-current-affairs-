@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { spacing } from '../theme';
 import Field from './Field';
 import SocialSignIn from './SocialSignIn';
+import LegalLinks from './LegalLinks';
 import { errorText, useT } from '../lib/i18n';
 import { Button, Screen, T } from './ui';
 
@@ -61,6 +62,7 @@ export default function AuthForm({ mode }) {
           onPress={() => router.replace(isRegister ? '/login' : '/register')}
           style={{ marginTop: spacing.sm }}
         />
+        {isRegister ? <LegalLinks consent /> : null}
       </Screen>
     </KeyboardAvoidingView>
   );
