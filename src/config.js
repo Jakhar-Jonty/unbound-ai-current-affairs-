@@ -32,6 +32,8 @@ const config = {
   app: {
     minVersion: process.env.MIN_APP_VERSION || '1.0.0',
     latestVersion: process.env.LATEST_APP_VERSION || '1.0.0',
+    // Play Store link shown on the website home page once the app is live.
+    storeUrl: process.env.STORE_URL || '',
   },
   ai: {
     provider: (process.env.AI_PROVIDER || 'mock').toLowerCase(),
@@ -64,7 +66,7 @@ const config = {
     smtpUrl: process.env.SMTP_URL || '',
     from: process.env.MAIL_FROM || 'Unbound <no-reply@example.com>',
   },
-  // Public base URL of this server (used for the premium checkout link), e.g. https://api.example.com
+  // Public base URL of this server (used for the premium checkout link), e.g. https://unbound.zonty.in
   publicUrl: (process.env.PUBLIC_URL || '').replace(/\/$/, ''),
   oauth: {
     // Comma-separated OAuth client IDs whose ID tokens we accept (web, iOS and Android clients).
@@ -89,6 +91,16 @@ const config = {
     keyId: process.env.RAZORPAY_KEY_ID || '',
     keySecret: process.env.RAZORPAY_KEY_SECRET || '',
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  },
+  // Shown on the privacy policy, terms, refund and contact pages. Set all of these before going live.
+  legal: {
+    appName: process.env.APP_NAME || 'Unbound Daily',
+    operator: process.env.LEGAL_OPERATOR || '',          // person or company running the app
+    contactEmail: process.env.LEGAL_CONTACT_EMAIL || '', // support and privacy requests
+    grievanceOfficer: process.env.GRIEVANCE_OFFICER || '', // name required by India's IT Rules / DPDP Act
+    address: process.env.LEGAL_ADDRESS || '',            // postal address (Razorpay needs one on the contact page)
+    city: process.env.LEGAL_CITY || '',                  // courts for disputes
+    effectiveDate: process.env.LEGAL_EFFECTIVE_DATE || '2026-11-18',
   },
   push: {
     enabled: bool('PUSH_ENABLED', false),

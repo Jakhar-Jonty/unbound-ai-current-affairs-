@@ -16,7 +16,8 @@
     "seed:demo": "node scripts/seed-demo.js",
     "job": "node scripts/run-job.js",
     "test": "node --test test/*.test.js",
-    "razorpay:plans": "node scripts/razorpay-plans.js"
+    "razorpay:plans": "node scripts/razorpay-plans.js",
+    "check:prod": "node scripts/check-prod.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.9.0",

@@ -1,4 +1,4 @@
-# Unbound – mobile app
+# Unbound Daily – mobile app
 
 React Native app (Expo SDK 58, Expo Router, JavaScript) for the current affairs platform. It talks to the backend in the repository root (`/api/v1`).
 
@@ -59,7 +59,7 @@ Other commands: `npx expo lint`, `npx expo export` (checks that the Android, iOS
 
 ## Before the first store build
 
-1. **Name and IDs.** `app.json` uses the name "Unbound" and the IDs `com.unbound.currentaffairs`. Change them now if needed; store IDs can't be changed after the first release.
+1. **Name and IDs.** `app.json` uses the name "Unbound Daily" and the IDs `com.unbound.daily` (iOS and Android). Store IDs can't be changed after the first release.
 2. **Icons and splash.** `assets/` still has Expo's placeholder images. Replace them with your logo (icon 1024×1024; Android adaptive foreground on transparent).
 3. **EAS project.** Run `npx eas-cli@latest init`. This adds `extra.eas.projectId`, which push notifications need. Until then the app skips push registration and logs a warning.
 4. **API URL.** Set `extra.apiUrl` in `app.json` (or `EXPO_PUBLIC_API_URL` in the build profile) to your production API over HTTPS.

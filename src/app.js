@@ -86,6 +86,10 @@ function createApp() {
     next();
   }, express.static(path.join(__dirname, '..', 'public', 'premium'), { index: 'index.html' }));
 
+  // Public website: home, privacy, terms, refunds, contact, account deletion.
+  app.use('/legal', express.static(path.join(__dirname, '..', 'public', 'legal'), { maxAge: '1h' }));
+  app.use(require('./modules/legal/legal.routes').router);
+
   // Admin panel (static, talks to /api/v1/admin).
   app.use('/admin', express.static(path.join(__dirname, '..', 'public', 'admin'), { index: 'index.html' }));
 

@@ -26,6 +26,11 @@ const D = {
   'common.createFreeAccount': ['Create a free account', 'मुफ़्त खाता बनाएँ'],
   'common.haveAccount': ['I already have an account', 'मेरा खाता पहले से है'],
   'common.version': ['Version {v}', 'संस्करण {v}'],
+  'legal.privacy': ['Privacy Policy', 'गोपनीयता नीति'],
+  'legal.terms': ['Terms of Use', 'उपयोग की शर्तें'],
+  'legal.consentA': ['By creating an account you agree to the ', 'खाता बनाकर आप '],
+  'legal.consentB': [' and ', ' और '],
+  'legal.consentC': ['.', ' से सहमत होते हैं।'],
   'common.questions': ['{n} questions', '{n} प्रश्न'],
   'common.questions.one': ['{n} question', '{n} प्रश्न'],
   'common.minutes': ['{n} min', '{n} मिनट'],
@@ -470,7 +475,7 @@ const D = {
   'art.noHindi': ['', 'इस लेख का हिंदी अनुवाद अभी समीक्षा में है, इसलिए यह अंग्रेज़ी में दिखाया जा रहा है।'],
   'art.textSize': ['Text size {p}%. Tap to change', 'अक्षर का आकार {p}%। बदलने के लिए टैप करें'],
   'art.share': ['Share article', 'लेख साझा करें'],
-  'art.shareFooter': ['Shared from Unbound, current affairs for UPSC.', 'Unbound से साझा किया गया, UPSC के लिए करेंट अफेयर्स।'],
+  'art.shareFooter': ['Shared from Unbound Daily, current affairs for UPSC.', 'Unbound Daily से साझा किया गया, UPSC के लिए करेंट अफेयर्स।'],
 
   // ---------- saved ----------
   'saved.title': ['Saved', 'सहेजे गए'],

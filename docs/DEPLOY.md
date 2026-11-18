@@ -12,7 +12,7 @@ Internet ──HTTPS──▶ nginx (:443) ──▶ ca-api (:4000, pm2)      �
 ## 0. Before you start
 
 - **A VPS.** 1 vCPU and 1–2 GB RAM is enough to start (DigitalOcean, Hetzner, Lightsail, Linode and so on). Pick a region close to India, such as Mumbai, Bangalore or Singapore.
-- **A domain or subdomain** for the API, e.g. `api.yourdomain.com`, with an **A record** pointing at the VPS IP. Certbot needs this to issue the HTTPS certificate, and the mobile app needs HTTPS.
+- **A domain or subdomain** for the API, e.g. `unbound.zonty.in`, with an **A record** pointing at the VPS IP. Certbot needs this to issue the HTTPS certificate, and the mobile app needs HTTPS.
 - **A production database, separate from development.** In Atlas, either create a new cluster or use a new database name in the connection string (`.../unbound_prod?...`). Under **Network Access**, add the VPS IP; don't leave `0.0.0.0/0` open.
 - **Email (SMTP).** Without it, sign-up verification and password-reset codes are not sent. Any provider works, for example:
   - Gmail with an [app password](https://myaccount.google.com/apppasswords): `smtps://you%40gmail.com:APP_PASSWORD@smtp.gmail.com:465`
@@ -83,20 +83,27 @@ Set at least these. Generate the secret on the server with `openssl rand -hex 32
 | `NODE_ENV` | `production` (pm2 sets it too) |
 | `MONGODB_URI` | Production connection string from step 0 |
 | `JWT_SECRET` | 64 hex characters from `openssl rand -hex 32`. The API refuses to start with fewer than 32 |
-| `PUBLIC_URL` | `https://api.yourdomain.com` |
+| `PUBLIC_URL` | `https://unbound.zonty.in` |
 | `CORS_ORIGINS` | Leave empty (the mobile app doesn't need CORS). Add an origin only if you host the web app |
-| `SMTP_URL`, `MAIL_FROM` | From step 0, e.g. `MAIL_FROM="Unbound <no-reply@yourdomain.com>"` |
+| `SMTP_URL`, `MAIL_FROM` | From step 0, e.g. `MAIL_FROM="Unbound Daily <no-reply@zonty.in>"` |
 | `AI_PROVIDER` + its key | e.g. `gemini` and `GEMINI_API_KEY` |
 | `PIPELINE_CONCURRENCY`, `PIPELINE_BATCH_SIZE` | `1` and `4` on Gemini's free tier |
 | `PREMIUM_ENABLED` | `false` until Razorpay is set up |
 | `PUSH_ENABLED` | `false` until the app has an EAS project ID |
+| `LEGAL_OPERATOR`, `LEGAL_CONTACT_EMAIL`, `GRIEVANCE_OFFICER`, `LEGAL_ADDRESS`, `LEGAL_CITY` | Shown on `/privacy`, `/terms`, `/refunds` and `/contact`. Use a support address (e.g. `support@zonty.in`), not a personal inbox. Required by Google Play and Razorpay |
+
+Then run the launch check. It lists anything missing and exits with an error until the must-haves are set:
+
+```bash
+NODE_ENV=production npm run check:prod
+```
 
 **Gemini free tier:** it allows about 20 requests a day. The default schedule generates every 2 hours, so most runs will hit the limit; that's handled (stories wait for the next run without losing attempts), but you'll get roughly 20 articles a day at most. Billing on the key removes the limit.
 
 ## 5. Create the admin account
 
 ```bash
-ADMIN_EMAIL=you@yourdomain.com ADMIN_PASSWORD='a-long-unique-password' npm run seed:admin
+ADMIN_EMAIL=you@zonty.in ADMIN_PASSWORD='a-long-unique-password' npm run seed:admin
 ```
 
 Use a long, unique password: this account can publish to every user. Don't run `seed:demo` on production; it refuses anyway.
@@ -108,6 +115,7 @@ pm2 start ecosystem.config.js
 pm2 save
 pm2 startup        # prints a sudo command: run it, so both restart after a reboot
 pm2 install pm2-logrotate
+pm2 set pm2-logrotate:retain 30   # privacy policy: logs kept up to 30 days
 
 curl http://127.0.0.1:4000/health   # {"status":"ok","db":"up"}
 ```
@@ -118,12 +126,11 @@ curl http://127.0.0.1:4000/health   # {"status":"ok","db":"up"}
 
 ```bash
 sudo cp deploy/nginx.conf /etc/nginx/sites-available/unbound
-sudo sed -i 's/api.example.com/api.yourdomain.com/' /etc/nginx/sites-available/unbound
 sudo ln -s /etc/nginx/sites-available/unbound /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
-sudo certbot --nginx -d api.yourdomain.com --redirect -m you@yourdomain.com --agree-tos
+sudo certbot --nginx -d unbound.zonty.in --redirect -m you@zonty.in --agree-tos
 ```
 
 Certbot renews the certificate automatically.
@@ -133,13 +140,13 @@ Certbot renews the certificate automatically.
 From your computer:
 
 ```bash
-curl https://api.yourdomain.com/health
-curl https://api.yourdomain.com/api/v1/meta
+curl https://unbound.zonty.in/health
+curl https://unbound.zonty.in/api/v1/meta
 ```
 
 Then:
 
-1. Sign in at `https://api.yourdomain.com/admin`.
+1. Sign in at `https://unbound.zonty.in/admin`.
 2. Fill the queue now instead of waiting for the schedule:
    ```bash
    cd /srv/unbound
@@ -148,6 +155,8 @@ Then:
    ```
 3. Approve a few articles in the admin panel, then `npm run job -- daily-quiz`.
 4. Register in the app with a real email and check the verification code arrives.
+5. Open the public pages and read them once: `https://unbound.zonty.in/privacy`, `/terms`, `/refunds`, `/contact`, `/delete-account` (add `?lang=hi` for Hindi). Nothing should be highlighted as "not set".
+6. Try the web deletion on a throwaway account: `/delete-account` → code by email → account gone.
 
 ## 9. Point the mobile app at it
 
@@ -155,7 +164,7 @@ For testing with Expo Go:
 
 ```bash
 cd mobile
-EXPO_PUBLIC_API_URL=https://api.yourdomain.com npx expo start
+EXPO_PUBLIC_API_URL=https://unbound.zonty.in npx expo start
 ```
 
 For store builds, set `extra.apiUrl` in `mobile/app.json` (or `EXPO_PUBLIC_API_URL` in the EAS build profile) to the same URL.
@@ -172,8 +181,9 @@ It pulls `main`, installs dependencies, reloads both processes and checks `/heal
 
 ## 11. Keep it healthy
 
-- **Backups.** Atlas has backups on paid clusters; the free M0 tier does not. On M0, run a daily `mongodump --uri="$MONGODB_URI" --gzip --archive=backup-$(date +%F).gz` and copy it off the server. Test a restore once.
-- **Uptime.** Add a free uptime check (UptimeRobot, Better Stack) on `https://api.yourdomain.com/health`.
+- **Backups.** Atlas has backups on paid clusters; the free M0 tier does not. On M0, run a daily `mongodump --uri="$MONGODB_URI" --gzip --archive=backup-$(date +%F).gz` and copy it off the server. Keep 30 days of backups and delete older ones (the privacy policy promises deleted accounts leave backups within 30 days). Test a restore once.
+- **Logs.** The privacy policy says server logs are kept up to 30 days. Ubuntu's nginx logrotate keeps 14 days by default; pm2 logs are rotated by `pm2-logrotate` (step 6).
+- **Uptime.** Add a free uptime check (UptimeRobot, Better Stack) on `https://unbound.zonty.in/health`.
 - **Failed jobs** show in the admin panel's Pipeline tab.
 - **Security updates:** `sudo apt install unattended-upgrades`.
 
@@ -184,6 +194,6 @@ It pulls `main`, installs dependencies, reloads both processes and checks `/heal
 | `JWT_SECRET must be set to at least 32 characters` | `.env` secret too short, or `.env` not found (`pm2 describe ca-api`, check `cwd`) |
 | `/health` says `"db":"down"` | Atlas Network Access doesn't include the VPS IP, or the URI is wrong |
 | `502 Bad Gateway` | API not running: `pm2 status`, `pm2 logs ca-api` |
-| Certbot fails | DNS A record not pointing at the server yet (`dig api.yourdomain.com`), or port 80 blocked |
+| Certbot fails | DNS A record not pointing at the server yet (`dig unbound.zonty.in`), or port 80 blocked |
 | No verification emails | `SMTP_URL` missing or wrong; look for `email not sent` in `pm2 logs ca-api` |
 | App can't reach the API | URL must be `https://`; on a phone, `localhost` is the phone |

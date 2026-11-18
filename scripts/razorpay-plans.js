@@ -16,7 +16,7 @@ async function main() {
     const plan = await rzp.plans.create({
       period: p.period,
       interval: 1,
-      item: { name: `Premium – ${p.label}`, amount: p.amount, currency: 'INR', description: `Unbound Premium (${p.label.toLowerCase()})` },
+      item: { name: `Premium – ${p.label}`, amount: p.amount, currency: 'INR', description: `Unbound Daily Premium (${p.label.toLowerCase()})` },
       notes: { app: 'unbound', plan: id },
     });
     lines.push(`RAZORPAY_PLAN_${id.toUpperCase()}=${plan.id}`);
