@@ -12,8 +12,8 @@ Limits: app name 30 characters, short description 80, full description 4,000.
 | Category | Education |
 | Tags | Education, Exam prep, News & magazines (pick up to 5 that Play offers) |
 | Contact email | Your support address (same as `LEGAL_CONTACT_EMAIL`) |
-| Website | `https://unbound.zonty.in` |
-| Privacy policy | `https://unbound.zonty.in/privacy` |
+| Website | `https://unbounddaily.zonty.in` |
+| Privacy policy | `https://unbounddaily.zonty.in/privacy` |
 
 ## English
 
@@ -51,7 +51,7 @@ Content follows the UPSC syllabus and focuses on facts that get asked: schemes, 
 
 Unbound Daily is an independent study app. It is not affiliated with the Union Public Service Commission or any government body. Articles are prepared with the help of AI from public news sources and reviewed by editors; always confirm key facts from official sources.
 
-Questions or corrections: write to us from the Contact page at unbound.zonty.in.
+Questions or corrections: write to us from the Contact page at unbounddaily.zonty.in.
 ```
 
 ## Hindi (hi-IN)
@@ -96,7 +96,7 @@ Unbound Daily रोज़ की ख़बरों को UPSC के लि�
 
 Unbound Daily एक स्वतंत्र अध्ययन ऐप है। यह संघ लोक सेवा आयोग या किसी सरकारी संस्था से संबद्ध नहीं है। लेख सार्वजनिक समाचार स्रोतों से AI की मदद से तैयार और संपादकों द्वारा जाँचे जाते हैं; ज़रूरी तथ्य आधिकारिक स्रोतों से अवश्य जाँचें।
 
-प्रश्न या सुधार: unbound.zonty.in के संपर्क पेज से हमें लिखें।
+प्रश्न या सुधार: unbounddaily.zonty.in के संपर्क पेज से हमें लिखें।
 ```
 
 ## Graphics

@@ -10,7 +10,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://unbound.zonty.in"
+        "EXPO_PUBLIC_API_URL": "https://unbounddaily.zonty.in"
       }
     },
     "production": {
@@ -19,7 +19,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://unbound.zonty.in"
+        "EXPO_PUBLIC_API_URL": "https://unbounddaily.zonty.in"
       }
     }
   },

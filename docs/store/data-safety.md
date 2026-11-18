@@ -11,7 +11,7 @@ Answers for **Policy → App content**. They match what the code does today and 
 | Does your app collect or share any of the required user data types? | Yes |
 | Is all of the user data collected by your app encrypted in transit? | Yes (HTTPS only) |
 | Do you provide a way for users to request that their data is deleted? | Yes. In the app (Profile → Delete account) and on the web |
-| Delete account URL | `https://unbound.zonty.in/delete-account` |
+| Delete account URL | `https://unbounddaily.zonty.in/delete-account` |
 
 **Data types**
 
@@ -58,7 +58,7 @@ Service providers that process data for us (hosting, database, email, Expo push,
 | Financial features | None |
 | Health | None |
 | News app | **Decide.** The app is exam preparation built on current affairs. If you answer No, choose Education. If Play classifies it as News (it may), you must declare it as a news app; the contact page and editorial review already meet the requirements |
-| Data deletion | `https://unbound.zonty.in/delete-account` |
+| Data deletion | `https://unbounddaily.zonty.in/delete-account` |
 | Advertising ID | No (the app doesn't use it). Make sure the `AD_ID` permission is not in the build; Expo doesn't add it unless an ads or analytics library asks for it |
 | Photo and video permissions | Not used |
 | Foreground service, exact alarms, full-screen intent | Not used |

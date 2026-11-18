@@ -13,7 +13,7 @@ Unbound Daily is a UPSC (Indian civil services exam) current-affairs app.
 - Articles can be read without signing in (Today and Explore tabs).
 - Signing in unlocks the daily quiz, weekly mock test (opens Sundays), practice by subject, bookmarks, progress and the leaderboard. Use the account above.
 - The app works in English and Hindi. Switch on the first screen or in Profile → Language.
-- Account deletion: Profile → Delete account, or on the web at https://unbound.zonty.in/delete-account.
+- Account deletion: Profile → Delete account, or on the web at https://unbounddaily.zonty.in/delete-account.
 - No purchases are possible inside the Android app.
 ```
 

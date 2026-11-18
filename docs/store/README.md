@@ -1,6 +1,6 @@
 # Launch checklist: Unbound Daily on Google Play
 
-App: **Unbound Daily** · package `com.unbound.daily` (permanent: can't be changed after the first upload) · server `https://unbound.zonty.in`.
+App: **Unbound Daily** · package `com.unbound.daily` (permanent: can't be changed after the first upload) · server `https://unbounddaily.zonty.in`.
 
 Files in this folder:
 
@@ -12,8 +12,8 @@ Files in this folder:
 
 Follow [../DEPLOY.md](../DEPLOY.md). Done when:
 
-- [ ] DNS: an **A record** for `unbound` in the `zonty.in` zone points at the VPS IP
-- [ ] `https://unbound.zonty.in/health` returns `{"status":"ok"}`
+- [ ] DNS: an **A record** for `unbounddaily` in the `zonty.in` zone points at the VPS IP
+- [ ] `https://unbounddaily.zonty.in/health` returns `{"status":"ok"}`
 - [ ] Legal settings in `.env` (`LEGAL_OPERATOR`, `LEGAL_CONTACT_EMAIL`, `GRIEVANCE_OFFICER`, `LEGAL_ADDRESS`, `LEGAL_CITY`) and `NODE_ENV=production npm run check:prod` passes
 - [ ] `/privacy`, `/terms`, `/refunds`, `/contact` and `/delete-account` read correctly, in English and with `?lang=hi`
 - [ ] A sign-up email with the verification code arrives (SMTP works)

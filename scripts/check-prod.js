@@ -15,7 +15,7 @@ const should = (ok, msg) => { if (!ok) warnings.push(msg); };
 must(config.isProd, 'NODE_ENV must be "production"');
 must(config.jwt.secret.length >= 32 && config.jwt.secret !== 'dev-only-insecure-secret', 'JWT_SECRET must be a random string of at least 32 characters (openssl rand -hex 32)');
 must(!/127\.0\.0\.1|localhost/.test(config.mongoUri), 'MONGODB_URI points at localhost; use the production database');
-must(/^https:\/\//.test(config.publicUrl), 'PUBLIC_URL must be the https address of this server, e.g. https://unbound.zonty.in');
+must(/^https:\/\//.test(config.publicUrl), 'PUBLIC_URL must be the https address of this server, e.g. https://unbounddaily.zonty.in');
 must(Boolean(config.mail.smtpUrl), 'SMTP_URL is empty: sign-up, password reset and deletion codes would not be emailed');
 must(!/example\.com/.test(config.mail.from), 'MAIL_FROM still uses example.com');
 must(config.ai.provider !== 'mock', 'AI_PROVIDER is "mock": no real articles would be generated');

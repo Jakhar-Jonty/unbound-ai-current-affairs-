@@ -53,7 +53,7 @@
       "expo-apple-authentication"
     ],
     "extra": {
-      "apiUrl": "https://unbound.zonty.in",
+      "apiUrl": "https://unbounddaily.zonty.in",
       "storeUrl": {
         "ios": "",
         "android": ""
@@ -64,9 +64,9 @@
         "android": ""
       },
       "legal": {
-        "privacy": "https://unbound.zonty.in/privacy",
-        "terms": "https://unbound.zonty.in/terms",
-        "deleteAccount": "https://unbound.zonty.in/delete-account"
+        "privacy": "https://unbounddaily.zonty.in/privacy",
+        "terms": "https://unbounddaily.zonty.in/terms",
+        "deleteAccount": "https://unbounddaily.zonty.in/delete-account"
       }
     }
   }

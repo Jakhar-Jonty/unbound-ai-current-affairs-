@@ -66,7 +66,7 @@ const config = {
     smtpUrl: process.env.SMTP_URL || '',
     from: process.env.MAIL_FROM || 'Unbound <no-reply@example.com>',
   },
-  // Public base URL of this server (used for the premium checkout link), e.g. https://unbound.zonty.in
+  // Public base URL of this server (used for the premium checkout link), e.g. https://unbounddaily.zonty.in
   publicUrl: (process.env.PUBLIC_URL || '').replace(/\/$/, ''),
   oauth: {
     // Comma-separated OAuth client IDs whose ID tokens we accept (web, iOS and Android clients).
