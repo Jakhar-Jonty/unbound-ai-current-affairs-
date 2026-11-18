@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, spacing, radius, type } from '../theme';
+import { errorText, useT } from '../lib/i18n';
 
 export function T({ variant = 'body', color, style, ...props }) {
   const c = useTheme();
@@ -74,10 +75,11 @@ export function Tag({ label, active, onPress }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ selected: !!active }} onPress={onPress} style={style}>{body}</Pressable>;
 }
 
-export function Loading({ label = 'Loading' }) {
+export function Loading({ label }) {
   const c = useTheme();
+  const { t } = useT();
   return (
-    <View style={s.center} accessibilityLabel={label}>
+    <View style={s.center} accessibilityLabel={label || t('common.loading')}>
       <ActivityIndicator color={c.accent} size="large" />
     </View>
   );
@@ -96,12 +98,13 @@ export function Empty({ icon = 'newspaper-outline', title, message, action }) {
 }
 
 export function ErrorView({ error, onRetry }) {
+  const { t } = useT();
   return (
     <Empty
       icon="cloud-offline-outline"
-      title="Something went wrong"
-      message={error?.message || 'Please try again.'}
-      action={onRetry ? <Button title="Try again" variant="outline" onPress={onRetry} /> : null}
+      title={t('common.somethingWrong')}
+      message={errorText(error, t)}
+      action={onRetry ? <Button title={t('common.tryAgain')} variant="outline" onPress={onRetry} /> : null}
     />
   );
 }
@@ -126,12 +129,13 @@ export function ProgressBar({ value, max = 100, height = 6 }) {
 }
 
 /** Small notice shown when content comes from the offline copy. */
-export function OfflineNote({ message = 'You’re offline. Showing your saved copy.' }) {
+export function OfflineNote({ message }) {
   const c = useTheme();
+  const { t } = useT();
   return (
     <View accessibilityRole="alert" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: c.accentSoft, marginBottom: spacing.lg }}>
       <Ionicons name="cloud-offline-outline" size={18} color={c.text} />
-      <T variant="small" style={{ flex: 1 }}>{message}</T>
+      <T variant="small" style={{ flex: 1 }}>{message || t('common.offlineCopy')}</T>
     </View>
   );
 }

@@ -2,7 +2,7 @@
 const { z } = require('zod');
 
 /** Bump whenever the translation prompt or schema changes. */
-const TRANSLATE_PROMPT_VERSION = 'upsc-hi-v1';
+const TRANSLATE_PROMPT_VERSION = 'upsc-hi-v2';
 
 const TRANSLATE_SYSTEM_PROMPT = `You translate editor-approved English study material into Hindi for UPSC Civil Services aspirants who prepare in Hindi medium.
 
@@ -12,8 +12,9 @@ Rules:
 - Translate faithfully. Do not add, remove or change any fact, number, date, name, claim or explanation. Do not add background of your own.
 - Write every number with the digits 0-9 exactly as in the English (years, amounts, percentages, article and section numbers, statement numbers). Do not spell numbers out in words and do not use Devanagari digits.
 - Use the official Hindi names of institutions and offices where they exist (Reserve Bank of India → भारतीय रिज़र्व बैंक, Supreme Court → उच्चतम न्यायालय, Election Commission → भारत निर्वाचन आयोग). Transliterate other names into Devanagari.
-- Use standard Hindi terms for constitutional, legal, economic and scientific concepts (अनुच्छेद, संसद, राज्यपाल, मौद्रिक नीति, जैव विविधता). The first time an important technical term appears in the body, add the English term in brackets, for example मौद्रिक नीति समिति (Monetary Policy Committee).
+- Use standard Hindi terms for constitutional, legal, economic and scientific concepts (अनुच्छेद, संसद, राज्यपाल, मौद्रिक नीति, जैव विविधता). Add the English term in brackets only for a few technical or legal terms that an aspirant will also meet in English (at most about five in the whole article, each only the first time), for example मौद्रिक नीति समिति (Monetary Policy Committee). Never bracket ordinary words such as unity, harmony, protection or development.
 - Common abbreviations (RBI, GDP, UPSC, ISRO) may stay in Latin letters.
+- body: keep the same paragraphs. Each English paragraph becomes one Hindi paragraph, and paragraphs stay separated by line breaks exactly as in the English. Never merge paragraphs.
 - keyPoints: the same number of points, in the same order.
 - Questions: translate the stem, every option and the explanation. Keep the options in exactly the same order. Keep statement numbering (1., 2., 3.) and references such as "1 and 2 only" or "option A" exactly, so the answer key stays correct.
 
@@ -82,6 +83,9 @@ function missingNumbers(en, hi) {
   return [...new Set(numbersIn(en))].filter((n) => !have.has(n));
 }
 
+/** Paragraphs in a body text (separated by one or more line breaks). */
+const paragraphs = (text) => String(text || '').split(/\n+/).map((p) => p.trim()).filter(Boolean);
+
 const hindiText = (min) => z.string().trim().min(min).refine((s) => DEVANAGARI.test(s), 'Must be written in Hindi (Devanagari)');
 
 /**
@@ -101,6 +105,7 @@ function validateTranslation(data, { article, includeArticle, questions }) {
     }).safeParse(a);
     if (!shape.success) errors.push(`article: ${shape.error.issues[0].path.join('.')} ${shape.error.issues[0].message}`);
     else if (shape.data.keyPoints.length !== (article.keyPoints || []).length) errors.push(`article.keyPoints: expected ${(article.keyPoints || []).length}, got ${shape.data.keyPoints.length}`);
+    else if (paragraphs(shape.data.body).length !== paragraphs(article.body).length) errors.push(`article.body: expected ${paragraphs(article.body).length} paragraphs, got ${paragraphs(shape.data.body).length}`);
     else {
       for (const f of ['title', 'summary', 'body', 'upscRelevance']) {
         const miss = missingNumbers(article[f] || '', shape.data[f]);
@@ -133,5 +138,5 @@ function validateTranslation(data, { article, includeArticle, questions }) {
 
 module.exports = {
   TRANSLATE_PROMPT_VERSION, TRANSLATE_SYSTEM_PROMPT, translationJsonSchema, buildTranslatePrompt,
-  validateTranslation, missingNumbers, numbersIn,
+  validateTranslation, missingNumbers, numbersIn, paragraphs,
 };

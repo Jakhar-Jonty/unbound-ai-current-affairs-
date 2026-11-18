@@ -5,30 +5,32 @@ import { useTheme, spacing, radius } from '../theme';
 import { useGuestQuiz, useTodayQuiz } from '../lib/queries';
 import { useAuth } from '../lib/auth';
 import { Button, Card, T } from './ui';
+import { useT } from '../lib/i18n';
 
 /** "Today's quiz" call to action, inverted (black on light, ivory on dark) to stand out. */
 export default function TodayQuizCard() {
   const c = useTheme();
   const { data, isLoading, error, refetch } = useTodayQuiz();
   const { user } = useAuth();
+  const { t } = useT();
   const guest = !user?.id;
   const { data: guestDone } = useGuestQuiz(guest ? data?.quiz?.id : null);
 
   let body;
   if (isLoading) {
-    body = <T color={c.onInverse}>Loading today’s quiz…</T>;
+    body = <T color={c.onInverse}>{t('quizCard.loading')}</T>;
   } else if (error?.status === 404) {
     body = (
       <>
-        <T variant="title" color={c.onInverse}>Today’s quiz is on its way</T>
-        <T variant="small" color={c.onInverse} style={{ opacity: 0.8, marginTop: spacing.xs }}>It’s published every morning at 7:00 IST. Read today’s news while you wait.</T>
+        <T variant="title" color={c.onInverse}>{t('quizCard.onItsWay')}</T>
+        <T variant="small" color={c.onInverse} style={{ opacity: 0.8, marginTop: spacing.xs }}>{t('quizCard.onItsWayMessage')}</T>
       </>
     );
   } else if (error) {
     body = (
       <>
-        <T variant="heading" color={c.onInverse}>Couldn’t load today’s quiz</T>
-        <Button title="Try again" variant="primary" onPress={() => refetch()} style={{ marginTop: spacing.md, alignSelf: 'flex-start' }} />
+        <T variant="heading" color={c.onInverse}>{t('quizCard.couldNotLoad')}</T>
+        <Button title={t('common.tryAgain')} variant="primary" onPress={() => refetch()} style={{ marginTop: spacing.md, alignSelf: 'flex-start' }} />
       </>
     );
   } else {
@@ -37,16 +39,16 @@ export default function TodayQuizCard() {
       <>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.accent }} />
-          <T variant="caption" color={c.onInverse}>DAILY QUIZ</T>
+          <T variant="caption" color={c.onInverse}>{t('quizCard.label')}</T>
         </View>
         <T variant="title" color={c.onInverse} style={{ marginTop: spacing.sm }}>
-          {done ? `You scored ${done.score}/${done.total}` : `${data.quiz.questionCount} questions from today’s news`}
+          {done ? t('quizCard.scored', { score: done.score, total: done.total }) : t('quizCard.fromNews', { n: data.quiz.questionCount })}
         </T>
         <T variant="small" color={c.onInverse} style={{ opacity: 0.8, marginTop: spacing.xs }}>
-          {done?.guest ? 'Create a free account to save this score and start your streak.' : done ? 'Review the explanations to lock in what you learned.' : 'About 5 minutes. Explanations after you submit.'}
+          {done?.guest ? t('quizCard.guestDone') : done ? t('quizCard.reviewHint') : t('quizCard.startHint')}
         </T>
         <Button
-          title={done ? 'Review answers' : 'Start quiz'}
+          title={done ? t('quizCard.review') : t('quizCard.start')}
           icon={done ? 'reader-outline' : 'play'}
           onPress={() => router.push(done ? (done.guest ? `/result/guest?quiz=${data.quiz.id}` : `/result/${done.id}`) : `/quiz/${data.quiz.id}`)}
           style={{ marginTop: spacing.lg, alignSelf: 'flex-start' }}

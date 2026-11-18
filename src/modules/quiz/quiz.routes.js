@@ -1,7 +1,8 @@
 'use strict';
 const express = require('express');
 const { validate, pagination, objectId, z } = require('../../lib/validate');
-const { notFound } = require('../../lib/errors');
+const { notFound, unauthorized } = require('../../lib/errors');
+const mock = require('./mock.service');
 const { localDateString } = require('../../lib/dates');
 const { requireAuth, optionalAuth } = require('../users/auth.middleware');
 const { Quiz } = require('./quiz.model');
@@ -13,10 +14,21 @@ const { isArchive, isPremium, premiumRequired } = require('../billing/entitlemen
 const router = express.Router();
 
 function quizSummary(q) {
-  return { id: q._id, type: q.type, date: q.date, title: q.title, questionCount: q.questions.length, publishedAt: q.publishedAt, premium: isArchive(q.publishedAt) };
+  return {
+    id: q._id, type: q.type, date: q.date, week: q.week, title: q.title, questionCount: q.questions.length,
+    durationSeconds: q.durationSeconds, marking: q.marking, publishedAt: q.publishedAt, premium: isArchive(q.publishedAt),
+  };
 }
 
-router.get('/quizzes', validate(pagination.extend({ type: z.enum(['daily', 'topic', 'custom']).optional() }), 'query'), async (req, res) => {
+/** Adds mock marks and the live rank to a result. */
+async function withMock(result, attempt, userId) {
+  // Every attempt has a (possibly empty) mock object; only mock tests have marks.
+  if (typeof attempt.mock?.maxMarks !== 'number') return result;
+  const m = attempt.mock.toObject ? attempt.mock.toObject() : attempt.mock;
+  return { ...result, mock: { ...m, ...(await mock.mockRanking(attempt.quiz, userId)) } };
+}
+
+router.get('/quizzes', validate(pagination.extend({ type: z.enum(['daily', 'topic', 'custom', 'mock']).optional() }), 'query'), async (req, res) => {
   const { page, limit, type } = req.valid.query;
   const filter = { status: 'published', ...(type ? { type } : {}) };
   const [items, total] = await Promise.all([
@@ -30,11 +42,21 @@ async function sendQuiz(req, res, quizId) {
   const { quiz, questions } = await svc.loadQuizWithQuestions(quizId);
   let myAttempt = null;
   if (req.user) {
-    const a = await Attempt.findOne({ user: req.user._id, quiz: quiz._id }).select('_id score total submittedAt').lean();
-    if (a) myAttempt = { id: a._id, score: a.score, total: a.total, submittedAt: a.submittedAt };
+    const a = await Attempt.findOne({ user: req.user._id, quiz: quiz._id }).select('_id score total submittedAt mock').lean();
+    if (a) myAttempt = { id: a._id, score: a.score, total: a.total, submittedAt: a.submittedAt, marks: a.mock?.marks, maxMarks: a.mock?.maxMarks };
   }
   // Old quizzes are premium, but your own past attempts stay reachable.
   if (isArchive(quiz.publishedAt) && !isPremium(req.user) && !myAttempt) throw premiumRequired('archive');
+  if (quiz.type === 'mock' && !myAttempt) {
+    // Mock questions are only sent once the timer has started (see POST /quizzes/:id/start).
+    const start = req.user ? await mock.getStart(req.user._id, quiz._id) : null;
+    const timer = start ? { startedAt: start.startedAt, endsAt: new Date(start.startedAt.getTime() + quiz.durationSeconds * 1000) } : null;
+    return res.json({
+      quiz: { ...quizSummary(quiz), questionCount: questions.length },
+      questions: timer ? questions.map((q) => svc.toPlayable(q, langOf(req))) : [],
+      myAttempt, timer, requiresStart: !timer,
+    });
+  }
   res.json({ quiz: { ...quizSummary(quiz), questionCount: questions.length }, questions: questions.map((q) => svc.toPlayable(q, langOf(req))), myAttempt });
 }
 
@@ -42,6 +64,22 @@ router.get('/quizzes/today', optionalAuth, async (req, res) => {
   const quiz = await Quiz.findOne({ type: 'daily', date: localDateString(), status: 'published' }).select('_id').lean();
   if (!quiz) throw notFound("Today's quiz is not available yet");
   await sendQuiz(req, res, quiz._id);
+});
+
+// The latest weekly mock test.
+router.get('/quizzes/mock/current', optionalAuth, async (req, res) => {
+  const quiz = await Quiz.findOne({ type: 'mock', status: 'published' }).sort({ publishedAt: -1 }).select('_id').lean();
+  if (!quiz) throw notFound('No mock test yet. The first one is published on Sunday morning.');
+  await sendQuiz(req, res, quiz._id);
+});
+
+router.post('/quizzes/:id/start', requireAuth, async (req, res) => {
+  objectId.parse(req.params.id);
+  const quiz = await mock.loadMock(req.params.id);
+  if (isArchive(quiz.publishedAt) && !isPremium(req.user)) throw premiumRequired('archive');
+  const timer = await mock.startMock(req.user, quiz);
+  const { questions } = await svc.loadQuizWithQuestions(quiz._id);
+  res.status(201).json({ timer, questions: questions.map((q) => svc.toPlayable(q, langOf(req))) });
 });
 
 router.get('/quizzes/:id', optionalAuth, async (req, res) => {
@@ -72,24 +110,27 @@ const guestLimiter = require('express-rate-limit').rateLimit({
 
 router.post('/quizzes/:id/check', guestLimiter, validate(attemptSchema), async (req, res) => {
   objectId.parse(req.params.id);
-  const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();
+  const quiz = await Quiz.findById(req.params.id).select('publishedAt type').lean();
+  if (quiz?.type === 'mock') throw unauthorized('Sign in to take the mock test. Your marks and rank are saved to your account.');
   if (quiz && isArchive(quiz.publishedAt)) throw premiumRequired('archive');
   res.json({ result: await svc.checkAnswers({ quizId: req.params.id, answers: req.valid.body.answers, lang: langOf(req) }) });
 });
 
 router.post('/quizzes/:id/attempts', requireAuth, validate(attemptSchema), async (req, res) => {
   objectId.parse(req.params.id);
-  const quiz = await Quiz.findById(req.params.id).select('publishedAt').lean();
+  const quiz = await Quiz.findById(req.params.id).lean();
   if (quiz && isArchive(quiz.publishedAt) && !isPremium(req.user)) throw premiumRequired('archive');
-  const attempt = await svc.submitAttempt({ userId: req.user._id, quizId: req.params.id, ...req.valid.body });
-  res.status(201).json({ result: await svc.attemptResult(attempt, langOf(req)) });
+  const attempt = quiz?.type === 'mock'
+    ? await mock.submitMock({ user: req.user, quiz, answers: req.valid.body.answers })
+    : await svc.submitAttempt({ userId: req.user._id, quizId: req.params.id, ...req.valid.body });
+  res.status(201).json({ result: await withMock(await svc.attemptResult(attempt, langOf(req)), attempt, req.user._id) });
 });
 
 router.get('/attempts/:id', requireAuth, async (req, res) => {
   objectId.parse(req.params.id);
   const attempt = await Attempt.findOne({ _id: req.params.id, user: req.user._id }).lean();
   if (!attempt) throw notFound('Attempt not found');
-  res.json({ result: await svc.attemptResult(attempt, langOf(req)) });
+  res.json({ result: await withMock(await svc.attemptResult(attempt, langOf(req)), attempt, req.user._id) });
 });
 
 router.get('/me/attempts', requireAuth, validate(pagination, 'query'), async (req, res) => {

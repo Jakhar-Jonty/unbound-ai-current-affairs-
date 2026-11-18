@@ -4,8 +4,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useArticles, useTaxonomy } from '../../lib/queries';
 import { useTheme, spacing, radius, type } from '../../theme';
 import ListScreen from '../../components/ListScreen';
-import ArticleCard from '../../components/ArticleCard';
+import ArticleCard, { subjectLabel } from '../../components/ArticleCard';
 import { Empty, ErrorView, Tag, T } from '../../components/ui';
+import { useT } from '../../lib/i18n';
 
 function useDebounced(value, ms = 350) {
   const [v, setV] = useState(value);
@@ -15,6 +16,7 @@ function useDebounced(value, ms = 350) {
 
 export default function Explore() {
   const c = useTheme();
+  const { t, lang } = useT();
   const { data: taxonomy } = useTaxonomy();
   const [subject, setSubject] = useState(null);
   const [text, setText] = useState('');
@@ -28,28 +30,28 @@ export default function Explore() {
       renderItem={({ item }) => <ArticleCard article={item} />}
       header={
         <View style={{ marginBottom: spacing.lg }}>
-          <T variant="display" style={{ marginBottom: spacing.lg }}>Explore</T>
+          <T variant="display" style={{ marginBottom: spacing.lg }}>{t('explore.title')}</T>
           <View style={[s.search, { borderColor: c.borderStrong }]}>
             <Ionicons name="search" size={18} color={c.textMuted} />
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="Search topics, schemes, places"
+              placeholder={t('explore.search')}
               placeholderTextColor={c.textMuted}
-              accessibilityLabel="Search articles"
+              accessibilityLabel={t('explore.searchLabel')}
               returnKeyType="search"
               style={[type.body, { flex: 1, color: c.text, paddingVertical: spacing.sm }]}
             />
-            {text ? <Ionicons name="close-circle" size={18} color={c.textMuted} onPress={() => setText('')} accessibilityLabel="Clear search" /> : null}
+            {text ? <Ionicons name="close-circle" size={18} color={c.textMuted} onPress={() => setText('')} accessibilityLabel={t('explore.clear')} /> : null}
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.md }}>
-            <Tag label="All subjects" active={!subject} onPress={() => setSubject(null)} />
-            {subjects.map(([key, s2]) => <Tag key={key} label={s2.label} active={subject === key} onPress={() => setSubject(subject === key ? null : key)} />)}
+            <Tag label={t('explore.allSubjects')} active={!subject} onPress={() => setSubject(null)} />
+            {subjects.map(([key]) => <Tag key={key} label={subjectLabel(taxonomy, key, lang)} active={subject === key} onPress={() => setSubject(subject === key ? null : key)} />)}
           </ScrollView>
           {articles.error ? <ErrorView error={articles.error} onRetry={articles.refetch} /> : null}
         </View>
       }
-      empty={articles.error ? null : <Empty icon="search-outline" title="Nothing found" message="Try another subject or search term." />}
+      empty={articles.error ? null : <Empty icon="search-outline" title={t('explore.nothing')} message={t('explore.tryAnother')} />}
     />
   );
 }

@@ -132,6 +132,16 @@ test('a translation that drops a number is rejected and recorded, then given up 
   assert.equal(failed.body.items.length, 1);
 });
 
+test('validation rejects merged paragraphs', () => {
+  const article = { title: 'T 1', summary: 'S', body: 'Para one.\n\nPara two.\n\nPara three.', keyPoints: [], upscRelevance: 'U' };
+  const hi = { title: 'शीर्षक 1', summary: 'सारांश सारांश', body: 'पहला अनुच्छेद। दूसरा अनुच्छेद। तीसरा अनुच्छेद। यह लंबा है।', keyPoints: [], upscRelevance: 'महत्व महत्व' };
+  const r = validateTranslation({ article: hi, questions: [] }, { article, includeArticle: true, questions: [] });
+  assert.equal(r.success, false);
+  assert.match(r.error, /expected 3 paragraphs, got 1/);
+  const ok = validateTranslation({ article: { ...hi, body: 'पहला अनुच्छेद यहाँ।\n\nदूसरा अनुच्छेद यहाँ।\n\nतीसरा अनुच्छेद यहाँ।' }, questions: [] }, { article, includeArticle: true, questions: [] });
+  assert.equal(ok.success, true);
+});
+
 test('validation rejects reordered options and English left untranslated', () => {
   const q = { _id: 'q1', stem: 'Which year?', options: ['2014', '2016', '2018', '2020'], explanation: 'It was 2016.' };
   const base = { article: {}, includeArticle: false, questions: [q] };

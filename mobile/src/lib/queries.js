@@ -190,3 +190,21 @@ export const useRelated = (id) => useQuery({
   staleTime: 5 * 60 * 1000,
   retry: false,
 });
+
+/** The latest weekly mock test (404 until the first one is published). */
+export function useMockCurrent() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['quiz', 'mock-current', user?.id],
+    queryFn: ({ signal }) => api('/quizzes/mock/current', { signal }),
+    retry: (count, err) => err.status !== 404 && count < 2,
+  });
+}
+
+/** Today's audio briefing script (Premium). Refetched when the language changes. */
+export const useBriefing = () => useQuery({
+  queryKey: ['briefing'],
+  queryFn: ({ signal }) => api('/briefing/today', { signal }),
+  retry: (n, err) => err?.status !== 403 && n < 2,
+  staleTime: 5 * 60 * 1000,
+});

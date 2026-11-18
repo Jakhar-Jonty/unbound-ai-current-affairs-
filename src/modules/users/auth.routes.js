@@ -86,8 +86,13 @@ router.patch('/me', requireAuth, validate(z.object({
   name: z.string().trim().min(1).max(100).optional(),
   showOnLeaderboard: z.boolean().optional(),
   preferredSubjects: z.array(z.enum(require('../taxonomy/taxonomy').SUBJECT_KEYS)).max(16).optional(),
+  lang: z.enum(['en', 'hi']).optional(),
+  notificationPrefs: z.object({ dailyReminder: z.boolean().optional(), mock: z.boolean().optional() }).optional(),
 })), async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.user._id, { $set: req.valid.body }, { returnDocument: 'after' });
+  const { notificationPrefs, ...rest } = req.valid.body;
+  const set = { ...rest };
+  for (const [k, v] of Object.entries(notificationPrefs || {})) set[`notificationPrefs.${k}`] = v;
+  const user = await User.findByIdAndUpdate(req.user._id, { $set: set }, { returnDocument: 'after' });
   res.json({ user: user.toPublic() });
 });
 

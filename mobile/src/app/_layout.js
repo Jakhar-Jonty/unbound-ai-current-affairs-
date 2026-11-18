@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { PrefsProvider, usePrefs } from '../lib/prefs';
 import { useMeta } from '../lib/queries';
 import { compareVersions } from '../lib/format';
+import { useT } from '../lib/i18n';
 import { useTheme } from '../theme';
 import { Empty, Button } from '../components/ui';
 
@@ -46,6 +47,7 @@ function useNotificationRouting() {
 
 /** Blocks the app when the backend requires a newer version. */
 function VersionGate({ children }) {
+  const { t } = useT();
   const { data: meta } = useMeta();
   const current = Constants.expoConfig?.version || '0.0.0';
   if (meta && compareVersions(current, meta.minAppVersion) < 0) {
@@ -53,9 +55,9 @@ function VersionGate({ children }) {
     return (
       <Empty
         icon="arrow-up-circle-outline"
-        title="Update required"
-        message="A newer version of the app is needed to keep your content up to date."
-        action={storeUrl ? <Button title="Update now" onPress={() => WebBrowser.openBrowserAsync(storeUrl)} /> : null}
+        title={t('update.title')}
+        message={t('update.message')}
+        action={storeUrl ? <Button title={t('update.button')} onPress={() => WebBrowser.openBrowserAsync(storeUrl)} /> : null}
       />
     );
   }
@@ -77,7 +79,15 @@ function useOnboarding() {
 /** Sends the chosen content language with every request; reloads content when it changes. */
 function useContentLanguage() {
   const { prefs, ready } = usePrefs();
+  const { user, updateProfile } = useAuth();
   const qc = useQueryClient();
+  // Keep the account's language in step with the app, so reminders arrive in it.
+  const accountLang = user?.id && !user.offline ? user.lang : null;
+  useEffect(() => {
+    if (!ready || !accountLang) return;
+    const lang = prefs.lang === 'hi' ? 'hi' : 'en';
+    if (accountLang !== lang) updateProfile({ lang }).catch(() => {});
+  }, [ready, prefs.lang, accountLang, updateProfile]);
   useEffect(() => {
     if (!ready) return;
     const lang = prefs.lang === 'hi' ? 'hi' : 'en';
@@ -89,6 +99,7 @@ function useContentLanguage() {
 
 function RootStack() {
   const c = useTheme();
+  const { t } = useT();
   useContentLanguage();
   useNotificationRouting();
   useOnboarding();
@@ -108,17 +119,19 @@ function RootStack() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="article/[id]" options={{ title: '' }} />
-          <Stack.Screen name="quiz/[id]" options={{ title: 'Quiz', gestureEnabled: false }} />
-          <Stack.Screen name="result/[id]" options={{ title: 'Your result' }} />
-          <Stack.Screen name="leaderboard" options={{ title: 'This week’s leaderboard' }} />
-          <Stack.Screen name="premium" options={{ title: 'Premium', presentation: 'modal' }} />
-          <Stack.Screen name="insights" options={{ title: 'Your insights' }} />
+          <Stack.Screen name="quiz/[id]" options={{ title: t('titles.quiz'), gestureEnabled: false }} />
+          <Stack.Screen name="result/[id]" options={{ title: t('titles.result') }} />
+          <Stack.Screen name="leaderboard" options={{ title: t('titles.leaderboard') }} />
+          <Stack.Screen name="premium" options={{ title: t('titles.premium'), presentation: 'modal' }} />
+          <Stack.Screen name="insights" options={{ title: t('titles.insights') }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
-          <Stack.Screen name="account/verify" options={{ title: 'Verify email' }} />
-          <Stack.Screen name="account/subjects" options={{ title: 'My subjects' }} />
-          <Stack.Screen name="practice/[subject]" options={{ title: 'Practice' }} />
-          <Stack.Screen name="account/password" options={{ title: 'Change password' }} />
-          <Stack.Screen name="account/delete" options={{ title: 'Delete account' }} />
+          <Stack.Screen name="account/verify" options={{ title: t('titles.verify') }} />
+          <Stack.Screen name="account/subjects" options={{ title: t('titles.subjects') }} />
+          <Stack.Screen name="practice/[subject]" options={{ title: t('titles.practice') }} />
+          <Stack.Screen name="account/password" options={{ title: t('titles.password') }} />
+          <Stack.Screen name="account/delete" options={{ title: t('titles.delete') }} />
+          <Stack.Screen name="briefing" options={{ title: t('titles.briefing') }} />
+          <Stack.Screen name="account/notifications" options={{ title: t('titles.notifications') }} />
         </Stack>
       </VersionGate>
     </View>

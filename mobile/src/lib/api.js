@@ -1,7 +1,22 @@
 import Constants from 'expo-constants';
 
-/** Backend URL: EXPO_PUBLIC_API_URL, else app.json extra.apiUrl. */
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL || Constants.expoConfig?.extra?.apiUrl || 'http://localhost:4000').replace(/\/$/, '');
+/**
+ * In development, the API runs on the same computer as the bundler (Metro). The app
+ * already knows that computer's address (hostUri, e.g. "10.232.137.199:8081"), so the
+ * API is reached there on port 4000. This follows the computer's current IP when you
+ * change Wi-Fi, and works on phones and emulators alike.
+ */
+function devApiUrl() {
+  if (!__DEV__) return null;
+  const host = Constants.expoConfig?.hostUri?.split(':')[0];
+  if (!host || host === 'localhost' || host === '127.0.0.1') return null;
+  return `http://${host}:${process.env.EXPO_PUBLIC_API_PORT || 4000}`;
+}
+
+/** Backend URL: EXPO_PUBLIC_API_URL if set, else (in development) the Metro host, else app.json extra.apiUrl. */
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL || devApiUrl() || Constants.expoConfig?.extra?.apiUrl || 'http://localhost:4000').replace(/\/$/, '');
+
+if (__DEV__) console.log(`[api] Using backend ${API_URL}`);
 
 let authToken = null;
 let contentLang = 'en';
@@ -40,7 +55,9 @@ export async function api(path, { method = 'GET', body, signal, lang = contentLa
     });
   } catch (err) {
     if (err?.name === 'AbortError') throw err;
-    throw new ApiError(0, 'network', 'Can’t reach the server. Check your connection and try again.');
+    throw new ApiError(0, 'network', __DEV__
+      ? `Can’t reach the server at ${API_URL}. Is the backend running, and is this device on the same network?`
+      : 'Can’t reach the server. Check your connection and try again.');
   }
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));

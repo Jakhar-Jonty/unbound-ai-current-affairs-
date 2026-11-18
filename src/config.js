@@ -51,9 +51,13 @@ const config = {
       generate: process.env.CRON_GENERATE || '20 */2 * * *',
       dailyQuiz: process.env.CRON_DAILY_QUIZ || '0 7 * * *',
       translate: process.env.CRON_TRANSLATE || '40 */2 * * *',
+      weeklyMock: process.env.CRON_WEEKLY_MOCK || '0 8 * * 0',
+      mockReminder: process.env.CRON_MOCK_REMINDER || '0 18 * * 6',
+      dailyReminder: process.env.CRON_DAILY_REMINDER || '0 20 * * *',
     },
     // Articles translated into Hindi per run (one AI call each).
     translateBatchSize: int('TRANSLATE_BATCH_SIZE', 5),
+    mockSize: int('MOCK_SIZE', 50),
   },
   mail: {
     // Any SMTP provider, e.g. smtps://user:pass@smtp.example.com:465
