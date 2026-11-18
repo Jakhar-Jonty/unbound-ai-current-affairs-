@@ -112,8 +112,14 @@ PermitRootLogin no
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 EOF
-  sshd -t && systemctl reload ssh
-  echo "Root and password logins are now off. Log in as: ssh $USER_NAME@<server>"
+  mkdir -p /run/sshd
+  if sshd -t; then
+    systemctl reload ssh || systemctl restart ssh
+    echo "Root and password logins are now off. Log in as: ssh $USER_NAME@<server>"
+  else
+    rm -f /etc/ssh/sshd_config.d/01-unbound.conf
+    echo "SSH config check failed; left SSH settings unchanged." >&2
+  fi
 else
   echo "Skipped: $USER_NAME has no personal SSH key yet, so root login stays on."
 fi
