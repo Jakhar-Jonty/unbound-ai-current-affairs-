@@ -2,7 +2,7 @@
 const { Article } = require('../content/article.model');
 const { Question } = require('../quiz/question.model');
 const { isCurrent } = require('../content/i18n');
-const { missingNumbers } = require('../pipeline/translatePrompts');
+const { missingNumbers, paragraphs } = require('../pipeline/translatePrompts');
 const { translateArticle } = require('../pipeline/translate');
 const { isRateLimit } = require('../pipeline/generate');
 const { AppError, badRequest, conflict, notFound } = require('../../lib/errors');
@@ -24,6 +24,7 @@ function hindiSummary(article, questions) {
       if (miss.length) warnings.push(`Article ${f}: ${miss.join(', ')} missing in Hindi`);
     }
     if ((a.keyPoints || []).length !== (article.keyPoints || []).length) warnings.push('Key points: different number of points than English');
+    if (paragraphs(a.body).length !== paragraphs(article.body).length) warnings.push(`Explainer: ${paragraphs(a.body).length} paragraphs in Hindi, ${paragraphs(article.body).length} in English (paragraphs may be merged)`);
   }
   for (const q of questions) {
     const t = q.translations?.hi;
