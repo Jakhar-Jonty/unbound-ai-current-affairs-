@@ -50,7 +50,8 @@
           "color": "#FF7928"
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "apiUrl": "https://unbounddaily.zonty.in",
@@ -60,8 +61,7 @@
       },
       "googleClientIds": {
         "web": "",
-        "ios": "",
-        "android": ""
+        "ios": ""
       },
       "legal": {
         "privacy": "https://unbounddaily.zonty.in/privacy",

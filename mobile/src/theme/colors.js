@@ -24,7 +24,7 @@ export const palette = {
 export const light = {
   scheme: 'light',
   background: palette.ivory,
-  surface: palette.ivory,
+  surface: '#FCFAF6', // cards: a touch lighter than the page
   text: palette.black,
   textSecondary: palette.greyOnIvory,
   textMuted: palette.grey, // large text / icons only
@@ -45,7 +45,7 @@ export const light = {
 export const dark = {
   scheme: 'dark',
   background: palette.black,
-  surface: palette.black,
+  surface: '#1D1D1D', // cards: a touch lighter than the page
   text: palette.ivory,
   textSecondary: palette.greyOnBlack,
   textMuted: palette.grey,

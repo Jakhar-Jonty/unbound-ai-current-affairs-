@@ -8,8 +8,8 @@ import Constants from 'expo-constants';
  */
 function devApiUrl() {
   if (!__DEV__) return null;
-  const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  if (!host || host === 'localhost' || host === '127.0.0.1') return null;
+  // Web has no hostUri: use the page's own host. Never fall through to the production URL in development.
+  const host = Constants.expoConfig?.hostUri?.split(':')[0] || globalThis.location?.hostname || 'localhost';
   return `http://${host}:${process.env.EXPO_PUBLIC_API_PORT || 4000}`;
 }
 

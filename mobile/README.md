@@ -64,7 +64,7 @@ Other commands: `npx expo lint`, `npx expo export` (checks that the Android, iOS
 3. **EAS project.** Run `npx eas-cli@latest init`. This adds `extra.eas.projectId`, which push notifications need. Until then the app skips push registration and logs a warning.
 4. **API URL.** Set `extra.apiUrl` in `app.json` (or `EXPO_PUBLIC_API_URL` in the build profile) to your production API over HTTPS.
 5. **Store links.** Fill in `extra.storeUrl.ios` / `.android` so the "Update required" screen can link to the store.
-6. **Google sign-in.** Create OAuth client IDs (web, iOS, Android) in Google Cloud Console, put them in `extra.googleClientIds`, and put all of them in the server's `GOOGLE_CLIENT_IDS`. The button stays hidden until both are set.
+6. **Google sign-in and push.** See [docs/GOOGLE.md](../docs/GOOGLE.md). Uses native Google Sign-In, so it works in app builds, not Expo Go. The button stays hidden until `extra.googleClientIds.web` and the server's `GOOGLE_CLIENT_IDS` are both set.
 7. **Apple sign-in.** Already enabled in `app.json` (`ios.usesAppleSignIn`). Put the bundle ID in the server's `APPLE_CLIENT_IDS`. Apple requires its option whenever Google sign-in is offered on iOS.
 8. **Push.** On the server, set `PUSH_ENABLED=true` (and optionally `EXPO_ACCESS_TOKEN`). For iOS, EAS sets up the APNs key during the first `eas build`.
 

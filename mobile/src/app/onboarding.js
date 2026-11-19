@@ -62,8 +62,13 @@ export default function Onboarding() {
         <Button title={t('onb.skip')} variant="ghost" onPress={() => setI(steps - 1)} />
       </View>
       <View>
-        <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: c.inverse, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl }}>
-          <Ionicons name={s.icon} size={40} color={c.accent} />
+        <T variant="caption" style={{ letterSpacing: 2, fontWeight: '800', marginBottom: spacing.xl }}>
+          UNBOUND <T variant="caption" color={c.accent} style={{ letterSpacing: 2, fontWeight: '800' }}>DAILY</T>
+        </T>
+        <View style={{ width: 120, height: 120, borderRadius: 60, borderWidth: 1, borderColor: c.border, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl }}>
+          <View style={{ width: 92, height: 92, borderRadius: 46, backgroundColor: c.inverse, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name={s.icon} size={42} color={c.accent} />
+          </View>
         </View>
         <T variant="display" accessibilityRole="header">{t(s.title)}</T>
         <T color="textSecondary" style={{ marginTop: spacing.md, fontSize: 17, lineHeight: 26 }}>{t(s.body)}</T>
