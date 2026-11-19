@@ -1,105 +1,38 @@
 
-name: Backend CI/CD
-
-on:
-  pull_request:
-    paths-ignore:
-      - 'mobile/**'
-      - 'docs/**'
-      - '*.md'
-
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'mobile/**'
-      - 'docs/**'
-      - '*.md'
-
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-jobs:
-  test:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-
-    services:
-      mongo:
-        image: mongo:8.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Run tests
-        run: npm test
+      - name: Deploy to VPS
         env:
-          MONGODB_URI_TEST: mongodb://127.0.0.1:27017
-
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-
-    environment:
-      name: production
-      url: https://unbounddaily.zonty.in
-
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-
-    steps:
-      - name: Deploy to Hostinger VPS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            set -e
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-
-            cd ~/projects/unbound-ai-current-affairs-
-
-            git pull origin main
-            npm ci --no-audit --no-fund
-            npm run check:prod
-
-            pm2 restart ca-api
-            pm2 restart ca-worker
-            pm2 save
-
-      - name: Verify production health
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          PORT: ${{ secrets.VPS_PORT }}
         run: |
-          for i in 1 2 3 4 5; do
-            if curl -fsS https://unbounddaily.zonty.in/health; then
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Production health check failed"
-          exit 1
+          set -euo pipefail
+
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/deploy_key \
+            -p "$PORT" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "$USER@$HOST" 'bash -se' <<'REMOTE'
+              set -euo pipefail
+
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+              cd ~/projects/unbound-ai-current-affairs-
+
+              git pull origin main
+              npm ci --no-audit --no-fund
+              npm run check:prod
+
+              pm2 restart ca-api
+              pm2 restart ca-worker
+              pm2 save
+          REMOTE
