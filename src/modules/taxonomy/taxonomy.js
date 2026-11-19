@@ -1,10 +1,22 @@
 'use strict';
 
 /**
- * UPSC Civil Services syllabus taxonomy. Every article and question is tagged with
- * one GS paper and one or more subjects so that progress, topic quizzes and future
- * study plans can be computed per subject.
+ * Content taxonomy. Every article is tagged with:
+ * - the exams it is useful for (EXAMS) — the app filters the feed by the user's exams;
+ * - one GS paper and one or more subjects (the UPSC/State PSC syllabus structure, which
+ *   also works as a general subject map), so progress and practice can be computed per subject.
  */
+const EXAMS = {
+  upsc: { label: 'UPSC', labelHi: 'यूपीएससी', full: 'UPSC Civil Services' },
+  'state-psc': { label: 'State PSC', labelHi: 'राज्य लोक सेवा आयोग', full: 'State Public Service Commissions' },
+  ssc: { label: 'SSC', labelHi: 'एसएससी', full: 'SSC (CGL, CHSL, MTS)' },
+  railways: { label: 'Railways', labelHi: 'रेलवे', full: 'Railway Recruitment Boards (NTPC, Group D)' },
+  banking: { label: 'Banking', labelHi: 'बैंकिंग', full: 'Banking (IBPS, SBI, RBI)' },
+  insurance: { label: 'Insurance', labelHi: 'बीमा', full: 'Insurance (LIC, NIACL)' },
+  defence: { label: 'Defence', labelHi: 'रक्षा', full: 'Defence (NDA, CDS, AFCAT)' },
+};
+const EXAM_KEYS = Object.keys(EXAMS);
+
 const GS_PAPERS = {
   GS1: 'GS Paper I – History, Culture, Geography, Society',
   GS2: 'GS Paper II – Polity, Governance, Social Justice, International Relations',
@@ -43,4 +55,4 @@ const GS_PAPERS_HI = {
 const GS_PAPER_KEYS = Object.keys(GS_PAPERS);
 const SUBJECT_KEYS = Object.keys(SUBJECTS);
 
-module.exports = { GS_PAPERS, GS_PAPERS_HI, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS };
+module.exports = { EXAMS, EXAM_KEYS, GS_PAPERS, GS_PAPERS_HI, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS };

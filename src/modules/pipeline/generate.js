@@ -185,7 +185,7 @@ async function processStory(items, { provider, fetchImpl, maxAttempts, run }) {
       body: out.body,
       keyPoints: out.keyPoints,
       upscRelevance: out.upscRelevance,
-      tags: { gsPaper: out.gsPaper, subjects: out.subjects, keywords: out.keywords },
+      tags: { exams: out.exams, gsPaper: out.gsPaper, subjects: out.subjects, keywords: out.keywords },
       sources: ranked.map((src) => toSource(src)),
       factsToVerify: out.factsToVerify.map((text) => ({ text })),
       status: 'in_review',

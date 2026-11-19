@@ -66,7 +66,7 @@ async function seed({ log = console.log } = {}) {
       body: a.body,
       keyPoints: a.keyPoints,
       upscRelevance: a.upscRelevance,
-      tags: { gsPaper: a.gsPaper, subjects: a.subjects, keywords: a.keywords },
+      tags: { exams: a.exams, gsPaper: a.gsPaper, subjects: a.subjects, keywords: a.keywords },
       sources: a.sources,
       factsToVerify: a.factsToVerify.map((text) => ({ text })),
       status: 'in_review',

@@ -17,7 +17,7 @@ const push = require('../notifications/push.service');
 const { AuditLog, audit } = require('./auditLog.model');
 const editorial = require('./editorial.service');
 const translation = require('./translation.service');
-const { GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { EXAM_KEYS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 const { similarTo } = require('../pipeline/similarity');
 
 const router = express.Router();
@@ -117,6 +117,7 @@ router.post('/articles/:id/translations/hi/retranslate', async (req, res) => {
 });
 
 const tagsSchema = z.object({
+  exams: z.array(z.enum(EXAM_KEYS)).min(1).max(EXAM_KEYS.length).optional(),
   gsPaper: z.enum(GS_PAPER_KEYS).optional(),
   subjects: z.array(z.enum(SUBJECT_KEYS)).min(1).max(3).optional(),
   keywords: z.array(z.string().trim().min(1).max(60)).max(15).optional(),

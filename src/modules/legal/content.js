@@ -11,12 +11,13 @@
 const en = {
   home: (v) => ({
     title: v.app,
-    lead: `Daily current affairs for UPSC aspirants, in English and Hindi. Short explainers mapped to the syllabus, a daily quiz, practice questions and a weekly mock test.`,
+    lead: `Daily current affairs for competitive exams: UPSC, State PSC, SSC, Railways, Banking, Insurance and Defence. In English and Hindi, with short explainers, a daily quiz, practice questions and a weekly mock test.`,
     sections: [
       { h: 'What you get', ul: [
         'Daily articles from reliable public sources, checked by an editor before they are published.',
         'Each story tagged by GS paper and subject, with key points and sources.',
-        'A daily 10-question quiz, a weekly mock test with UPSC marking and a weekly leaderboard.',
+        'Choose your exams and see the stories that matter for them.',
+        'A daily 10-question quiz, a weekly mock test with negative marking and a weekly leaderboard.',
         'Practice questions by subject, bookmarks, offline reading and an audio briefing.',
       ] },
       { h: 'Get the app', p: [v.storeLink] },
@@ -102,7 +103,7 @@ const en = {
     lead: `These terms apply when you use ${v.app}, run by ${v.operator}. By using the app you agree to them. Effective ${v.date}.`,
     sections: [
       { h: '1. The service', p: [
-        `${v.app} provides current-affairs articles, quizzes, practice questions and mock tests to help with UPSC and other exam preparation. It is an independent study aid and is not affiliated with the Union Public Service Commission or any government body.`,
+        `${v.app} provides current-affairs articles, quizzes, practice questions and mock tests to help with preparation for competitive exams such as UPSC, State PSC, SSC, Railways, Banking, Insurance and Defence. It is an independent study aid and is not affiliated with the Union Public Service Commission or any government body.`,
       ] },
       { h: '2. Accuracy', p: [
         'Content is prepared with the help of AI from public news sources and checked by editors, but it may contain errors or become outdated. Always confirm important facts from official sources. We are not responsible for exam results or decisions made on the basis of the content.',
@@ -199,12 +200,13 @@ const en = {
 const hi = {
   home: (v) => ({
     title: v.app,
-    lead: 'UPSC अभ्यर्थियों के लिए रोज़ का करेंट अफ़ेयर्स, हिंदी और अंग्रेज़ी में। पाठ्यक्रम से जुड़े छोटे लेख, रोज़ की क्विज़, अभ्यास प्रश्न और साप्ताहिक मॉक टेस्ट।',
+    lead: 'प्रतियोगी परीक्षाओं के लिए रोज़ का करेंट अफ़ेयर्स: UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा और रक्षा। हिंदी और अंग्रेज़ी में, छोटे लेख, रोज़ की क्विज़, अभ्यास प्रश्न और साप्ताहिक मॉक टेस्ट के साथ।',
     sections: [
       { h: 'ऐप में क्या है', ul: [
         'विश्वसनीय सार्वजनिक स्रोतों से रोज़ के लेख, प्रकाशन से पहले संपादक द्वारा जाँचे गए।',
         'हर ख़बर GS पेपर और विषय के अनुसार, मुख्य बिंदुओं और स्रोतों के साथ।',
-        'रोज़ 10 प्रश्नों की क्विज़, UPSC अंकन वाला साप्ताहिक मॉक टेस्ट और साप्ताहिक लीडरबोर्ड।',
+        'अपनी परीक्षाएँ चुनें और उनके लिए ज़रूरी ख़बरें देखें।',
+        'रोज़ 10 प्रश्नों की क्विज़, नकारात्मक अंकन वाला साप्ताहिक मॉक टेस्ट और साप्ताहिक लीडरबोर्ड।',
         'विषयवार अभ्यास प्रश्न, बुकमार्क, ऑफ़लाइन पढ़ना और ऑडियो ब्रीफ़िंग।',
       ] },
       { h: 'ऐप पाएँ', p: [v.storeLink] },
@@ -290,7 +292,7 @@ const hi = {
     lead: `ये शर्तें ${v.app} के उपयोग पर लागू होती हैं, जिसका संचालन ${v.operator} करते हैं। ऐप का उपयोग करके आप इनसे सहमत होते हैं। प्रभावी तिथि ${v.date}।`,
     sections: [
       { h: '1. सेवा', p: [
-        `${v.app} UPSC और अन्य परीक्षाओं की तैयारी के लिए करेंट अफ़ेयर्स लेख, क्विज़, अभ्यास प्रश्न और मॉक टेस्ट देता है। यह एक स्वतंत्र अध्ययन साधन है और संघ लोक सेवा आयोग या किसी सरकारी संस्था से संबद्ध नहीं है।`,
+        `${v.app} UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा और रक्षा जैसी प्रतियोगी परीक्षाओं की तैयारी के लिए करेंट अफ़ेयर्स लेख, क्विज़, अभ्यास प्रश्न और मॉक टेस्ट देता है। यह एक स्वतंत्र अध्ययन साधन है और संघ लोक सेवा आयोग या किसी सरकारी संस्था से संबद्ध नहीं है।`,
       ] },
       { h: '2. सटीकता', p: [
         'सामग्री सार्वजनिक समाचार स्रोतों से AI की मदद से तैयार और संपादकों द्वारा जाँची जाती है, फिर भी इसमें त्रुटि हो सकती है या यह पुरानी हो सकती है। ज़रूरी तथ्य आधिकारिक स्रोतों से अवश्य जाँचें। परीक्षा परिणाम या सामग्री के आधार पर लिए गए निर्णयों के लिए हम ज़िम्मेदार नहीं हैं।',

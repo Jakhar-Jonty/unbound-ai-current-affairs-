@@ -36,7 +36,7 @@ function createMockProvider() {
       const title = item.title || 'Untitled';
       if (title.includes('[fail]')) throw new Error('Mock provider failure');
       const data = title.includes('[irrelevant]')
-        ? { relevant: false, relevanceReason: 'Not useful for UPSC preparation', title: '', summary: '', body: '', keyPoints: [], upscRelevance: '', gsPaper: 'PRELIMS', subjects: [], keywords: [], factsToVerify: [], questions: [] }
+        ? { relevant: false, relevanceReason: 'Not useful for exam preparation', title: '', summary: '', body: '', keyPoints: [], upscRelevance: '', exams: [], gsPaper: 'PRELIMS', subjects: [], keywords: [], factsToVerify: [], questions: [] }
         : {
           relevant: true,
           relevanceReason: 'Policy development relevant to governance',
@@ -45,6 +45,7 @@ function createMockProvider() {
           body: `Explainer for "${title}". ${item.fullText || item.description || ''} This paragraph explains the background, the key provisions and the implications for India.`,
           keyPoints: [`Key point about ${title}`, 'Second key point'],
           upscRelevance: 'Relevant to GS Paper II: government policies and interventions.',
+          exams: ['upsc', 'state-psc', 'ssc'],
           gsPaper: 'GS2',
           subjects: ['governance', 'polity'],
           keywords: ['scheme', 'policy'],

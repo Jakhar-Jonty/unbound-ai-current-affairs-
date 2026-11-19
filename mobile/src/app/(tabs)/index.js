@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '../../lib/auth';
 import { useArticles } from '../../lib/queries';
 import { usePrefs } from '../../lib/prefs';
-import { useMySubjects } from '../../lib/subjects-pref';
+import { useMyExams, useMySubjects } from '../../lib/subjects-pref';
 import { getContinueReading } from '../../lib/reading';
 import { formatLongDate } from '../../lib/format';
 import { tap } from '../../lib/haptics';
@@ -106,7 +106,8 @@ export default function Today() {
   const { subjects } = useMySubjects();
   const feed = prefs.feed === 'foryou' ? 'foryou' : 'all';
   const forYou = feed === 'foryou' && subjects.length > 0;
-  const articles = useArticles(forYou ? { subjects } : {});
+  const { exams } = useMyExams();
+  const articles = useArticles(forYou ? { subjects, exams } : { exams });
   const firstName = user?.name?.split(' ')[0];
 
   return (

@@ -127,6 +127,7 @@ function RootStack() {
           <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="account/verify" options={{ title: t('titles.verify') }} />
           <Stack.Screen name="account/subjects" options={{ title: t('titles.subjects') }} />
+          <Stack.Screen name="account/exams" options={{ title: t('titles.exams') }} />
           <Stack.Screen name="practice/[subject]" options={{ title: t('titles.practice') }} />
           <Stack.Screen name="account/password" options={{ title: t('titles.password') }} />
           <Stack.Screen name="account/delete" options={{ title: t('titles.delete') }} />

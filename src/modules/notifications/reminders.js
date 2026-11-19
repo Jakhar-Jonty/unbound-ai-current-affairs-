@@ -23,8 +23,8 @@ const TEXT = {
     hi: (n) => ({ title: 'आज का करेंट अफेयर्स क्विज़ उपलब्ध है', body: `ताज़ा खबरों से ${n} प्रश्न। लगभग 5 मिनट लगेंगे।` }),
   },
   mockOpen: {
-    en: (n) => ({ title: 'This week’s mock test is live', body: `${n} Prelims-style questions from the week’s news, with UPSC marking.` }),
-    hi: (n) => ({ title: 'इस सप्ताह का मॉक टेस्ट उपलब्ध है', body: `सप्ताह की खबरों से ${n} प्रारंभिक परीक्षा जैसे प्रश्न, UPSC अंकन के साथ।` }),
+    en: (n) => ({ title: 'This week’s mock test is live', body: `${n} questions from the week’s news, with negative marking.` }),
+    hi: (n) => ({ title: 'इस सप्ताह का मॉक टेस्ट उपलब्ध है', body: `सप्ताह की खबरों से ${n} प्रश्न, नकारात्मक अंकन के साथ।` }),
   },
   mockLast: {
     en: () => ({ title: 'Last day for this week’s mock test', body: 'A new one starts tomorrow morning. See where you stand.' }),

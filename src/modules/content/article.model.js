@@ -1,6 +1,6 @@
 'use strict';
 const mongoose = require('mongoose');
-const { GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { EXAM_KEYS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 const ARTICLE_STATUSES = ['draft', 'in_review', 'published', 'rejected', 'retracted'];
 
@@ -66,8 +66,12 @@ const articleSchema = new mongoose.Schema(
     summary: { type: String, required: true },
     body: { type: String, required: true },
     keyPoints: [String],
+    // "Why it matters for exams". Field name kept from when the app was UPSC-only.
     upscRelevance: String,
     tags: {
+      // Exams this story is useful for. Empty on articles made before exam tags existed;
+      // those are treated as relevant to every exam.
+      exams: [{ type: String, enum: EXAM_KEYS }],
       gsPaper: { type: String, enum: GS_PAPER_KEYS, required: true },
       subjects: [{ type: String, enum: SUBJECT_KEYS }],
       keywords: [String],
@@ -116,6 +120,7 @@ const articleSchema = new mongoose.Schema(
 
 articleSchema.index({ status: 1, publishedAt: -1 });
 articleSchema.index({ 'tags.subjects': 1, status: 1, publishedAt: -1 });
+articleSchema.index({ 'tags.exams': 1, status: 1, publishedAt: -1 });
 articleSchema.index({ 'sources.url': 1 });
 articleSchema.index({ title: 'text', summary: 'text', 'tags.keywords': 'text' });
 

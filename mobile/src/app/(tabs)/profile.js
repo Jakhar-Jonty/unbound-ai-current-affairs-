@@ -13,7 +13,8 @@ import LegalLinks from '../../components/LegalLinks';
 import ThemeSwitch from '../../components/ThemeSwitch';
 import { usePrefs } from '../../lib/prefs';
 import { formatDate, shortName } from '../../lib/format';
-import { useMySubjects } from '../../lib/subjects-pref';
+import { useMyExams, useMySubjects } from '../../lib/subjects-pref';
+import { examLabel } from '../../lib/subjects';
 import { useT } from '../../lib/i18n';
 import { Button, Card, Divider, ErrorView, Loading, ProgressBar, Screen, SectionTitle, T } from '../../components/ui';
 
@@ -95,6 +96,7 @@ export default function Profile() {
   const { user, signedIn, signOut, updateProfile } = useAuth();
   const { data: taxonomy } = useTaxonomy();
   const { subjects: mySubjects } = useMySubjects();
+  const { exams: myExams } = useMyExams();
   const { data, isLoading, error, refetch, isRefetching } = useProgress();
   const version = Constants.expoConfig?.version;
 
@@ -103,7 +105,10 @@ export default function Profile() {
       <Screen>
         <T variant="display">{t('profile.title')}</T>
         <Card style={{ paddingVertical: spacing.xs }}>
-          <GroupRow first icon="language-outline" title={t('profile.language')} sub={t('profile.languageSub')} right={<LanguageSwitch compact />} />
+          <GroupRow first icon="school-outline" title={t('profile.exams')}
+            sub={myExams.length ? myExams.map((k) => examLabel(k, lang)).join(', ') : t('profile.examsEmpty')}
+            onPress={() => router.push('/account/exams')} />
+          <GroupRow icon="language-outline" title={t('profile.language')} sub={t('profile.languageSub')} right={<LanguageSwitch compact />} />
           <ThemeRow />
         </Card>
         <SignInPrompt title={t('profile.trackTitle')} message={t('profile.trackMessage')} />
@@ -184,7 +189,10 @@ export default function Profile() {
 
       <SectionTitle>{t('profile.preferences')}</SectionTitle>
       <Card style={{ paddingVertical: spacing.xs }}>
-        <GroupRow first icon="options-outline" title={t('profile.subjects')}
+        <GroupRow first icon="school-outline" title={t('profile.exams')}
+          sub={myExams.length ? myExams.map((k) => examLabel(k, lang)).join(', ') : t('profile.examsEmpty')}
+          onPress={() => router.push('/account/exams')} />
+        <GroupRow icon="options-outline" title={t('profile.subjects')}
           sub={mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k, lang)).join(', ') : t('profile.subjectsEmpty')}
           onPress={() => router.push('/account/subjects')} />
         <GroupRow icon="language-outline" title={t('profile.language')} right={<LanguageSwitch compact />} />

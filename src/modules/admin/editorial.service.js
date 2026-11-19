@@ -81,7 +81,7 @@ async function updateArticle(id, changes, { userId, correctionNote }) {
   if (fields.title && fields.title !== article.title && !isPublished) article.slug = await uniqueSlug(fields.title);
   for (const [k, v] of Object.entries(fields)) {
     if (k === 'tags') {
-      for (const tagKey of ['gsPaper', 'subjects', 'keywords']) {
+      for (const tagKey of ['exams', 'gsPaper', 'subjects', 'keywords']) {
         if (v[tagKey] !== undefined) article.set(`tags.${tagKey}`, v[tagKey]);
       }
     } else {

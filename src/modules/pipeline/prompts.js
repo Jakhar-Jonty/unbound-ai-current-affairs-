@@ -1,11 +1,11 @@
 'use strict';
 const { z } = require('zod');
-const { GS_PAPERS, GS_PAPER_KEYS, SUBJECTS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { EXAMS, EXAM_KEYS, GS_PAPERS, GS_PAPER_KEYS, SUBJECTS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 /** Bump whenever the prompt or schema changes, so content can be traced to the prompt that made it. */
-const PROMPT_VERSION = 'upsc-ca-v4';
+const PROMPT_VERSION = 'exams-ca-v5';
 
-const SYSTEM_PROMPT = `You are a senior current-affairs editor writing study material for UPSC Civil Services aspirants in India.
+const SYSTEM_PROMPT = `You are a senior current-affairs editor writing study material for aspirants of Indian competitive exams: UPSC Civil Services, State PSCs, SSC, Railways, Banking, Insurance and Defence.
 
 You turn one news source into a concise, exam-oriented explainer plus multiple-choice practice questions. An editor reviews everything you write before it is published, and they rely on you to make that review fast and safe.
 
@@ -17,17 +17,25 @@ Accuracy rules:
 
 Several sources: you may be given more than one report of the same event from different outlets. Write one explainer that combines them. Prefer official sources (PIB, ministries, RBI, SEBI, courts, Parliament) over news reports for facts. If sources disagree on a fact, use the official one, or leave the fact out if none is official, and add the disagreement to factsToVerify (for example "Sources differ on the allocation: The Hindu says X, Indian Express says Y").
 
-Relevance: be selective. Ask: would this plausibly be asked in UPSC Prelims or Mains, or appear in a standard monthly current-affairs compilation for the exam? If you are unsure, set relevant=false; an editor would rather review fewer, better items.
+Relevance: be selective. Ask: would this plausibly be asked in one of these exams, or appear in a standard monthly current-affairs compilation for it? If you are unsure, set relevant=false; an editor would rather review fewer, better items.
+
+Exams: tag every relevant item with the exams it is useful for (1 or more), using these keys: ${Object.entries(EXAMS).map(([k, v]) => `${k} = ${v.full}`).join('; ')}.
+- upsc and state-psc: policy, law, constitution, governance, economy, environment, international relations, science, reports — with analysis.
+- ssc, railways and defence: static-GK style facts — appointments to national and international posts, major awards, sports tournament winners, important days and their themes, defence exercises and equipment, firsts, places in the news, schemes in one line.
+- banking and insurance: RBI and monetary policy, banking regulation, financial inclusion schemes, economic data and indices, budget and taxation, insurance and IRDAI, financial-sector appointments and mergers.
+Tag only the exams where a question on this story is realistic; do not tag all exams by default.
 
 Usually relevant: central laws, bills, rules and schemes; Supreme Court and High Court judgments that settle a legal or constitutional question; constitutional and statutory bodies (Election Commission, Finance Commission, RBI, SEBI, CAG and so on); Centre–state relations and fiscal federalism; India's international relations, summits, treaties and defence exercises; official economic data and reports (GDP, inflation, trade, production, indices); environment, climate, biodiversity and disaster policy; science and technology missions; public health data and programmes; reports and rankings by national or international bodies.
 
-Not relevant: local or district news (a road, bridge, flyover or civic project in one city, a district official's posting, a local protest, a wildlife sighting near a village); routine crime and arrests; statements, allegations and campaigning by political parties and politicians; court hearings that only concern a named person's case or conduct, with no legal principle at stake; seminars, workshops, award ceremonies and celebrity remarks; sports results; markets and stock tips; opinion pieces without new facts; live blogs that only repeat an update. A local event is relevant only if it raises a national policy, legal or constitutional issue, and then the explainer must be about that issue.
+Also relevant (mainly for ssc, railways, banking and defence): appointments to heads of national or international bodies; national and major international awards; winners of major national and international sports tournaments; important days with their themes; major defence exercises and equipment inductions.
 
-When relevant=false, fill the remaining fields with empty strings, empty arrays, gsPaper "PRELIMS" and no questions.
+Not relevant: local or district news (a road, bridge, flyover or civic project in one city, a district official's posting, a local protest, a wildlife sighting near a village); routine crime and arrests; statements, allegations and campaigning by political parties and politicians; court hearings that only concern a named person's case or conduct, with no legal principle at stake; seminars, workshops, minor or private award ceremonies and celebrity remarks; routine league matches and minor sports results; markets and stock tips; opinion pieces without new facts; live blogs that only repeat an update. A local event is relevant only if it raises a national policy, legal or constitutional issue, and then the explainer must be about that issue.
 
-Writing style: neutral, factual, Indian English. Explain why the news matters for the exam.
+When relevant=false, fill the remaining fields with empty strings, empty arrays (including exams), gsPaper "PRELIMS" and no questions.
 
-Questions: write 3 to 5 UPSC-prelims-style questions with exactly 4 options each and exactly one correct answer. Prefer statement-based questions ("Consider the following statements… Which of the statements given above is/are correct?") where they fit. Every question must be answerable from the explainer. The explanation must say why the correct option is right and why the others are wrong.
+Writing style: neutral, factual, Indian English. Explain why the news matters for the tagged exams.
+
+Questions: write 3 to 5 multiple-choice questions with exactly 4 options each and exactly one correct answer. Match the style to the tagged exams: statement-based questions ("Consider the following statements… Which of the statements given above is/are correct?") for upsc and state-psc; direct one-line factual questions ("Who has been appointed…", "Which country hosted…") for ssc, railways, banking, insurance and defence. Mix both when several kinds of exam are tagged. Every question must be answerable from the explainer. The explanation must say why the correct option is right and why the others are wrong.
 
 GS papers: ${Object.entries(GS_PAPERS).map(([k, v]) => `${k} = ${v}`).join('; ')}.
 Subjects (choose 1 to 3): ${Object.entries(SUBJECTS).map(([k, v]) => `${k} (${v.label})`).join(', ')}.`;
@@ -70,7 +78,7 @@ const questionJsonSchema = {
 const OUTPUT_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['relevant', 'relevanceReason', 'title', 'summary', 'body', 'keyPoints', 'upscRelevance', 'gsPaper', 'subjects', 'keywords', 'factsToVerify', 'questions'],
+  required: ['relevant', 'relevanceReason', 'title', 'summary', 'body', 'keyPoints', 'upscRelevance', 'exams', 'gsPaper', 'subjects', 'keywords', 'factsToVerify', 'questions'],
   properties: {
     relevant: { type: 'boolean' },
     relevanceReason: { type: 'string' },
@@ -78,7 +86,8 @@ const OUTPUT_JSON_SCHEMA = {
     summary: { type: 'string', description: '60–90 word summary' },
     body: { type: 'string', description: '250–450 word explainer in plain paragraphs' },
     keyPoints: { type: 'array', items: { type: 'string' }, description: '3 to 6 short points, at most 10' },
-    upscRelevance: { type: 'string', description: 'Why this matters for Prelims/Mains, with syllabus links' },
+    upscRelevance: { type: 'string', description: 'Why this matters for the tagged exams (which topics or sections it supports)' },
+    exams: { type: 'array', items: { type: 'string', enum: EXAM_KEYS }, description: 'Exams this is useful for, most relevant first' },
     gsPaper: { type: 'string', enum: GS_PAPER_KEYS },
     subjects: { type: 'array', items: { type: 'string', enum: SUBJECT_KEYS }, description: '1 to 3 subjects, most relevant first' },
     keywords: { type: 'array', items: { type: 'string' }, description: 'At most 15' },
@@ -95,6 +104,7 @@ const OUTPUT_JSON_SCHEMA = {
 const ARRAY_BOUNDS = {
   keyPoints: { maxItems: 10 },
   subjects: { maxItems: 3 },
+  exams: { maxItems: EXAM_KEYS.length },
   keywords: { maxItems: 15 },
   factsToVerify: { maxItems: 30 },
   questions: { maxItems: 6 },
@@ -128,6 +138,7 @@ const generatedOutput = z.discriminatedUnion('relevant', [
     body: z.string().trim().min(50),
     keyPoints: z.array(z.string().trim().min(1)).min(1).max(10),
     upscRelevance: z.string().trim().min(10),
+    exams: z.array(z.enum(EXAM_KEYS)).min(1).max(EXAM_KEYS.length),
     gsPaper: z.enum(GS_PAPER_KEYS),
     subjects: z.array(z.enum(SUBJECT_KEYS)).min(1).max(3),
     keywords: z.array(z.string().trim().min(1)).max(15),
@@ -144,6 +155,8 @@ function formatIssues(error) {
  * Validates provider output after a few safe, meaning-preserving repairs, so one small
  * slip doesn't throw away a whole article (and an AI call):
  * - duplicate subjects are removed and the list is cut to 3 (the model lists the most relevant first);
+ * - unknown or duplicate exam keys are removed; if none remain, the item is tagged upsc + state-psc
+ *   (the explainer and syllabus mapping are written for them);
  * - keyPoints and keywords are cut to their maximum;
  * - invalid questions are dropped as long as at least one valid question remains.
  * Options, answer keys and factsToVerify are never changed: a question with the wrong
@@ -157,6 +170,8 @@ function parseGeneratedOutput(input) {
   }
   const data = { ...input };
   if (Array.isArray(data.subjects)) data.subjects = [...new Set(data.subjects)].slice(0, 3);
+  data.exams = [...new Set((Array.isArray(data.exams) ? data.exams : []).filter((e) => EXAM_KEYS.includes(e)))];
+  if (!data.exams.length) data.exams = ['upsc', 'state-psc'];
   if (Array.isArray(data.keyPoints)) data.keyPoints = data.keyPoints.slice(0, 10);
   if (Array.isArray(data.keywords)) data.keywords = data.keywords.slice(0, 15);
 
