@@ -60,14 +60,23 @@
         "android": ""
       },
       "googleClientIds": {
-        "web": "",
+        "web": "469270210500-l4ll75ufpghj2k6iqi319u1347m42gop.apps.googleusercontent.com",
         "ios": ""
       },
       "legal": {
         "privacy": "https://unbounddaily.zonty.in/privacy",
         "terms": "https://unbounddaily.zonty.in/terms",
         "deleteAccount": "https://unbounddaily.zonty.in/delete-account"
+      },
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "64526204-e6ba-4b2a-955f-9f56ef15d332"
       }
-    }
+    },
+    "owner": "jonty007"
   }
 }
