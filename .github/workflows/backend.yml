@@ -1,14 +1,22 @@
-name: Backend
 
-# Tests on every pull request and push to main. A push to main that passes
-# deploys to the VPS (see docs/DEPLOY.md, step 10).
+name: Backend CI/CD
+
 on:
   pull_request:
-    paths-ignore: ['mobile/**', 'docs/**', '**.md']
+    paths-ignore:
+      - 'mobile/**'
+      - 'docs/**'
+      - '*.md'
+
   push:
-    branches: [main]
-    paths-ignore: ['mobile/**', 'docs/**', '**.md']
-  workflow_dispatch: # "Run workflow" button: test and deploy main by hand
+    branches:
+      - main
+    paths-ignore:
+      - 'mobile/**'
+      - 'docs/**'
+      - '*.md'
+
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,53 +25,81 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+
     services:
       mongo:
         image: mongo:8.0
-        ports: ['27017:27017']
+        ports:
+          - 27017:27017
         options: >-
           --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm test
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
         env:
           MONGODB_URI_TEST: mongodb://127.0.0.1:27017
 
   deploy:
     needs: test
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+
     environment:
       name: production
       url: https://unbounddaily.zonty.in
-    # One deploy at a time; a newer push waits instead of cancelling a deploy halfway.
+
     concurrency:
       group: deploy-production
       cancel-in-progress: false
+
     steps:
-      - name: Deploy over SSH
-        env:
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-          HOST: ${{ secrets.VPS_HOST }}
-        run: |
-          set -euo pipefail
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          # The key is locked to scripts/deploy.sh on the server, so no command is sent.
-          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 "deploy@$HOST"
-      - name: Check the public site
+      - name: Deploy to Hostinger VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+            cd ~/projects/unbound-ai-current-affairs-
+
+            git pull origin main
+            npm ci --no-audit --no-fund
+            npm run check:prod
+
+            pm2 restart ca-api
+            pm2 restart ca-worker
+            pm2 save
+
+      - name: Verify production health
         run: |
           for i in 1 2 3 4 5; do
-            curl -fsS https://unbounddaily.zonty.in/health && exit 0
+            if curl -fsS https://unbounddaily.zonty.in/health; then
+              exit 0
+            fi
             sleep 5
           done
+          echo "Production health check failed"
           exit 1
