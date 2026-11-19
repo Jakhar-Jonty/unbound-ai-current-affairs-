@@ -19,7 +19,7 @@
     "android": {
       "package": "com.unbound.daily",
       "adaptiveIcon": {
-        "backgroundColor": "#F5F2EC",
+        "backgroundColor": "#151515",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -47,11 +47,25 @@
       [
         "expo-notifications",
         {
-          "color": "#FF7928"
+          "color": "#FF7928",
+          "icon": "./assets/notification-icon.png"
         }
       ],
       "expo-apple-authentication",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F2EC",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#151515"
+          }
+        }
+      ]
     ],
     "extra": {
       "apiUrl": "https://unbounddaily.zonty.in",

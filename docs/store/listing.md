@@ -111,4 +111,9 @@ Unbound Daily एक स्वतंत्र अध्ययन ऐप है�
 
 Add a Hindi screenshot set under the Hindi translation so Hindi users see the app in Hindi.
 
-**Before the listing goes live, replace the Expo placeholder icon and splash** in `mobile/assets/` (`icon.png`, `android-icon-foreground.png`, `android-icon-background.png`, `android-icon-monochrome.png`, `splash-icon.png`, `favicon.png`).
+**Ready-made files** (from the logo, `graphics/logo-source.png`):
+- Play icon: [graphics/play-icon-512.png](graphics/play-icon-512.png)
+- Feature graphic: [graphics/feature-graphic-1024x500.png](graphics/feature-graphic-1024x500.png)
+- App icons, adaptive layers, splash (light and dark), notification icon and favicon are in `mobile/assets/`.
+
+When the logo changes, regenerate all of these from the new source.
