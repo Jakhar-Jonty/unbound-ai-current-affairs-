@@ -120,3 +120,4 @@ jobs:
 
           echo "Production health check failed"
           exit 1
+
