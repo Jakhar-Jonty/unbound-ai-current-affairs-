@@ -4,9 +4,19 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, spacing, radius, type } from '../theme';
 import { errorText, useT } from '../lib/i18n';
 
+// Android measures Devanagari too narrow when letterSpacing is set, which clips Hindi
+// text (e.g. "मुख्य ख़बर" showed as "मुख्य"). Hindi text drops the spacing.
+const DEVANAGARI = /[\u0900-\u097F]/;
+const hasDevanagari = (children) => {
+  if (typeof children === 'string') return DEVANAGARI.test(children);
+  if (Array.isArray(children)) return children.some(hasDevanagari);
+  return false;
+};
+
 export function T({ variant = 'body', color, style, ...props }) {
   const c = useTheme();
-  return <Text style={[type[variant], { color: color ? c[color] ?? color : c.text }, style]} {...props} />;
+  const hindi = type[variant]?.letterSpacing && hasDevanagari(props.children);
+  return <Text style={[type[variant], { color: color ? c[color] ?? color : c.text }, style, hindi && { letterSpacing: 0 }]} {...props} />;
 }
 
 /** Full-screen scrollable container with safe-area padding. */
