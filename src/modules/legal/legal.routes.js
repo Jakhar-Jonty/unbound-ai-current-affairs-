@@ -101,6 +101,7 @@ function page(name, req) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="/legal/icon.png">
 <title>${name === 'home' ? v.app : `${doc.title} · ${v.app}`}</title>
 <meta name="description" content="${esc(doc.lead.replace(/<[^>]+>/g, ''))}">
 <style>${CSS}</style>
