@@ -7,7 +7,7 @@ import { tap } from '../lib/haptics';
 import { spacing } from '../theme';
 import { Tag } from './ui';
 
-/** Multi-select chips for UPSC subjects. */
+/** Multi-select chips for subjects. */
 export default function SubjectPicker({ value, onChange }) {
   const { data: taxonomy } = useTaxonomy();
   const keys = Object.keys(taxonomy?.subjects || SUBJECT_LABELS);

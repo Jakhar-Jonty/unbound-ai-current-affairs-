@@ -32,6 +32,8 @@ const userSchema = new mongoose.Schema(
     showOnLeaderboard: { type: Boolean, default: true },
     // Subjects the user cares most about: drives the "For you" feed and practice order.
     preferredSubjects: { type: [String], default: undefined },
+    // Exams the user is preparing for (taxonomy EXAM_KEYS); the feed shows stories tagged for them.
+    preferredExams: { type: [String], default: undefined },
     // App language (also used for push notifications).
     lang: { type: String, enum: ['en', 'hi'], default: 'en' },
     notificationPrefs: {
@@ -55,6 +57,7 @@ userSchema.methods.toPublic = function toPublic() {
     signInMethods: [...(this.hasPassword !== false ? ['password'] : []), ...['google', 'apple'].filter((k) => this.providers?.[k])],
     showOnLeaderboard: this.showOnLeaderboard !== false,
     preferredSubjects: this.preferredSubjects || [],
+    preferredExams: this.preferredExams || [],
     lang: this.lang || 'en',
     notificationPrefs: {
       dailyReminder: this.notificationPrefs?.dailyReminder !== false,

@@ -12,6 +12,7 @@ import { PremiumGate, isPremiumError } from '../../components/Premium';
 import { TEXT_SCALES, usePrefs } from '../../lib/prefs';
 import { tap } from '../../lib/haptics';
 import ArticleCard, { ArticleMeta } from '../../components/ArticleCard';
+import { examLabel } from '../../lib/subjects';
 import LanguageSwitch from '../../components/LanguageSwitch';
 import { errorText, useT } from '../../lib/i18n';
 import { Card, Divider, ErrorView, Loading, OfflineNote, Screen, SectionTitle, T } from '../../components/ui';
@@ -128,7 +129,16 @@ export default function ArticleScreen() {
 
         {a.upscRelevance ? (
           <Card style={{ backgroundColor: c.accentSoft, borderColor: 'transparent', marginTop: spacing.sm }}>
-            <T variant="caption" style={{ marginBottom: spacing.xs }}>{t('art.whyUpsc')}</T>
+            <T variant="caption" style={{ marginBottom: spacing.xs }}>{t('art.whyExams')}</T>
+            {a.tags?.exams?.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm }} accessibilityLabel={`${t('art.usefulFor')}: ${a.tags.exams.map((k) => examLabel(k, lang)).join(', ')}`}>
+                {a.tags.exams.map((k) => (
+                  <View key={k} style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: c.inverse }}>
+                    <T variant="caption" color={c.onInverse}>{examLabel(k, lang)}</T>
+                  </View>
+                ))}
+              </View>
+            ) : null}
             <T style={read}>{a.upscRelevance}</T>
           </Card>
         ) : null}

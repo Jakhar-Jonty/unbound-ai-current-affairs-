@@ -2,9 +2,9 @@
 const { z } = require('zod');
 
 /** Bump whenever the translation prompt or schema changes. */
-const TRANSLATE_PROMPT_VERSION = 'upsc-hi-v2';
+const TRANSLATE_PROMPT_VERSION = 'exams-hi-v3';
 
-const TRANSLATE_SYSTEM_PROMPT = `You translate editor-approved English study material into Hindi for UPSC Civil Services aspirants who prepare in Hindi medium.
+const TRANSLATE_SYSTEM_PROMPT = `You translate editor-approved English study material into Hindi for Hindi-medium aspirants of Indian competitive exams (UPSC, State PSC, SSC, Railways, Banking, Insurance, Defence).
 
 Write clear, standard Hindi in Devanagari, in the register of NCERT textbooks, PIB Hindi releases and the UPSC Hindi question paper. An editor checks your Hindi against the English before it is published.
 

@@ -30,7 +30,7 @@ Follow [../DEPLOY.md](../DEPLOY.md). Done when:
 ## 3. Play Console
 
 - [ ] Developer account (one-time US$25). Personal accounts need identity verification
-- [ ] Create app: name "Unbound Daily – UPSC Prep", default language English (India), App, Free
+- [ ] Create app: name "Unbound Daily: Current Affairs", default language English (India), App, Free
 - [ ] Store listing and Hindi translation from [listing.md](listing.md); screenshots and feature graphic
 - [ ] App content: privacy policy URL, app access, ads, content rating, target audience, data safety, news declaration, data deletion URL (all in [data-safety.md](data-safety.md))
 - [ ] Countries: India (add others later if you want)

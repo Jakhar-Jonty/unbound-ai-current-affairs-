@@ -8,7 +8,7 @@ Create the account on the production server first (sign up in the app with a mai
 Username: <reviewer account email>
 Password: <its password>
 
-Unbound Daily is a UPSC (Indian civil services exam) current-affairs app.
+Unbound Daily is a current-affairs app for Indian competitive exams (UPSC, State PSC, SSC, Railways, Banking, Insurance, Defence).
 
 - Articles can be read without signing in (Today and Explore tabs).
 - Signing in unlocks the daily quiz, weekly mock test (opens Sundays), practice by subject, bookmarks, progress and the leaderboard. Use the account above.

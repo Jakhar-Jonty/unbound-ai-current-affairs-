@@ -1,4 +1,4 @@
-// Built-in copy of the UPSC subject names (from the backend taxonomy), used when
+// Built-in copy of the subject names (from the backend taxonomy), used when
 // the app is offline and hasn't loaded /taxonomy yet.
 export const SUBJECT_LABELS = {
   'history-culture': 'History, Art & Culture',
@@ -37,3 +37,9 @@ export const SUBJECT_LABELS_HI = {
   'reports-indices': 'रिपोर्ट और सूचकांक',
   'places-in-news': 'चर्चा में स्थान',
 };
+
+// Exams the feed can be filtered by (same keys as the backend taxonomy).
+export const EXAM_KEYS = ['upsc', 'state-psc', 'ssc', 'railways', 'banking', 'insurance', 'defence'];
+export const EXAM_LABELS = { upsc: 'UPSC', 'state-psc': 'State PSC', ssc: 'SSC', railways: 'Railways', banking: 'Banking', insurance: 'Insurance', defence: 'Defence' };
+export const EXAM_LABELS_HI = { upsc: 'यूपीएससी', 'state-psc': 'राज्य लोक सेवा आयोग', ssc: 'एसएससी', railways: 'रेलवे', banking: 'बैंकिंग', insurance: 'बीमा', defence: 'रक्षा' };
+export const examLabel = (key, lang) => (lang === 'hi' ? EXAM_LABELS_HI[key] : EXAM_LABELS[key]) || key;

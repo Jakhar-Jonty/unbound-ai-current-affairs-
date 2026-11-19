@@ -9,7 +9,7 @@ const { langOf } = require('./i18n');
 const { optionalAuth } = require('../users/auth.middleware');
 const { isArchive, isPremium, premiumRequired } = require('../billing/entitlements');
 const { vectorize, cosine } = require('../pipeline/similarity');
-const { GS_PAPERS, GS_PAPERS_HI, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
+const { EXAMS, EXAM_KEYS, GS_PAPERS, GS_PAPERS_HI, SUBJECTS, GS_PAPER_KEYS, SUBJECT_KEYS } = require('../taxonomy/taxonomy');
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ function publicCache(seconds) {
 }
 
 router.get('/taxonomy', publicCache(3600), (_req, res) => {
-  res.json({ gsPapers: GS_PAPERS, gsPapersHi: GS_PAPERS_HI, subjects: SUBJECTS });
+  res.json({ exams: EXAMS, gsPapers: GS_PAPERS, gsPapersHi: GS_PAPERS_HI, subjects: SUBJECTS });
 });
 
 const listQuery = pagination.extend({
@@ -30,17 +30,20 @@ const listQuery = pagination.extend({
   // Several subjects, comma-separated (the user's "my subjects" feed).
   subjects: z.string().transform((s) => s.split(',').filter(Boolean)).pipe(z.array(z.enum(SUBJECT_KEYS)).max(16)).optional(),
   gsPaper: z.enum(GS_PAPER_KEYS).optional(),
+  // The user's exams, comma-separated. Untagged (older) articles match every exam.
+  exams: z.string().transform((s) => s.split(',').filter(Boolean)).pipe(z.array(z.enum(EXAM_KEYS)).max(EXAM_KEYS.length)).optional(),
   q: z.string().trim().min(2).max(100).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
 });
 
 router.get('/articles', publicCache(60), validate(listQuery, 'query'), async (req, res) => {
-  const { page, limit, subject, subjects, gsPaper, q, from, to } = req.valid.query;
+  const { page, limit, subject, subjects, gsPaper, exams, q, from, to } = req.valid.query;
   const filter = { status: 'published' };
   if (subject) filter['tags.subjects'] = subject;
   else if (subjects?.length) filter['tags.subjects'] = { $in: subjects };
   if (gsPaper) filter['tags.gsPaper'] = gsPaper;
+  if (exams?.length) filter.$or = [{ 'tags.exams': { $in: exams } }, { 'tags.exams': { $size: 0 } }, { 'tags.exams': { $exists: false } }];
   if (q) filter.$text = { $search: q };
   if (from || to) {
     filter.publishedAt = {};

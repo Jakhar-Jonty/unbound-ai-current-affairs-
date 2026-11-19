@@ -6,6 +6,7 @@ import { useTheme, spacing, radius, type } from '../../theme';
 import ListScreen from '../../components/ListScreen';
 import ArticleCard, { subjectLabel } from '../../components/ArticleCard';
 import { Empty, ErrorView, Tag, T } from '../../components/ui';
+import { useMyExams } from '../../lib/subjects-pref';
 import { useT } from '../../lib/i18n';
 
 function useDebounced(value, ms = 350) {
@@ -21,7 +22,8 @@ export default function Explore() {
   const [subject, setSubject] = useState(null);
   const [text, setText] = useState('');
   const q = useDebounced(text.trim());
-  const articles = useArticles({ subject, q: q.length >= 2 ? q : undefined });
+  const { exams } = useMyExams();
+  const articles = useArticles({ subject, exams, q: q.length >= 2 ? q : undefined });
   const subjects = Object.entries(taxonomy?.subjects || {});
 
   return (

@@ -13,14 +13,16 @@ function nextPage(last) {
   return last.page * last.limit < last.total ? last.page + 1 : undefined;
 }
 
-export function useArticles({ subject, subjects, q } = {}) {
+export function useArticles({ subject, subjects, exams, q } = {}) {
   const multi = subjects?.length ? [...subjects].sort().join(',') : undefined;
+  const examList = exams?.length ? [...exams].sort().join(',') : undefined;
   return useInfiniteQuery({
-    queryKey: ['articles', { subject, subjects: multi, q }],
+    queryKey: ['articles', { subject, subjects: multi, exams: examList, q }],
     queryFn: ({ pageParam, signal }) => {
       const params = new URLSearchParams({ page: String(pageParam), limit: String(PAGE) });
       if (subject) params.set('subject', subject);
       else if (multi) params.set('subjects', multi);
+      if (examList) params.set('exams', examList);
       if (q) params.set('q', q);
       return api(`/articles?${params}`, { signal });
     },

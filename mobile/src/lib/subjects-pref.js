@@ -17,3 +17,16 @@ export function useMySubjects() {
   }, [signedIn, update, updateProfile]);
   return { subjects: subjects || [], setSubjects };
 }
+
+/** "My exams": the feed shows stories tagged for these. Synced to the account like subjects. Empty = all exams. */
+export function useMyExams() {
+  const { user, updateProfile } = useAuth();
+  const { prefs, update } = usePrefs();
+  const signedIn = !!user?.id && !user.offline;
+  const exams = signedIn ? (user.preferredExams?.length ? user.preferredExams : prefs.exams) : prefs.exams;
+  const setExams = useCallback(async (next) => {
+    update({ exams: next });
+    if (signedIn) await updateProfile({ preferredExams: next });
+  }, [signedIn, update, updateProfile]);
+  return { exams: exams || [], setExams };
+}

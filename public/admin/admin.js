@@ -7,6 +7,10 @@ const app = document.getElementById('app');
 let me = null;
 
 // ---------- helpers ----------
+// Exams an article can be tagged for (same keys as src/modules/taxonomy/taxonomy.js).
+const EXAMS = { upsc: 'UPSC', 'state-psc': 'State PSC', ssc: 'SSC', railways: 'Railways', banking: 'Banking', insurance: 'Insurance', defence: 'Defence' };
+const examLabels = (keys) => (keys && keys.length ? keys.map((k) => EXAMS[k] || k).join(', ') : 'all exams (untagged)');
+
 function h(tag, attrs = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -155,9 +159,11 @@ async function articleView(id) {
     upscRelevance: h('textarea', {}, a.upscRelevance || ''),
     keyPoints: h('textarea', {}, (a.keyPoints || []).join('\n')),
   };
+  const examsEdit = examPicker(a.tags.exams || []);
   const correctionNote = h('input', { placeholder: 'What was corrected and why (shown to readers)' });
   const editForm = h('div', { hidden: true },
-    ...Object.entries(fields).flatMap(([k, el]) => [h('label', {}, k === 'keyPoints' ? 'Key points (one per line)' : k), el]),
+    ...Object.entries(fields).flatMap(([k, el]) => [h('label', {}, k === 'keyPoints' ? 'Key points (one per line)' : k === 'upscRelevance' ? 'Why it matters for exams' : k), el]),
+    h('label', {}, 'Exams'), examsEdit,
     a.status === 'published' ? [h('label', {}, 'Correction note'), correctionNote] : null,
     h('div', { class: 'row', style: 'margin-top:8px' },
       h('button', { class: 'primary', onclick: () => guarded(async () => {
@@ -165,6 +171,9 @@ async function articleView(id) {
           title: fields.title.value, summary: fields.summary.value, body: fields.body.value, upscRelevance: fields.upscRelevance.value,
           keyPoints: fields.keyPoints.value.split('\n').map((s) => s.trim()).filter(Boolean),
         };
+        const exams = examsEdit.value();
+        if (!exams.length) throw new Error('Tick at least one exam');
+        if (exams.join() !== (a.tags.exams || []).join()) body.tags = { exams };
         if (a.status === 'published') body.correctionNote = correctionNote.value;
         await api(`/admin/articles/${a._id}`, { method: 'PATCH', body });
         toast('Saved'); reload();
@@ -189,12 +198,12 @@ async function articleView(id) {
   return h('div', {},
     h('p', {}, h('a', { href: '#/review' }, '← Review queue')),
     h('div', { class: 'panel' },
-      h('div', { class: 'row' }, badge(a.status), h('span', { class: 'muted' }, `v${a.version} · ${a.tags.gsPaper} · ${(a.tags.subjects || []).join(', ')}`)),
+      h('div', { class: 'row' }, badge(a.status), h('span', { class: 'muted' }, `v${a.version} · ${examLabels(a.tags.exams)} · ${a.tags.gsPaper} · ${(a.tags.subjects || []).join(', ')}`)),
       h('h1', {}, a.title),
       h('p', {}, h('strong', {}, 'Summary: '), a.summary),
       h('h2', {}, 'Explainer'), ...a.body.split('\n').filter(Boolean).map((p) => h('p', {}, p)),
       h('h2', {}, 'Key points'), h('ul', {}, (a.keyPoints || []).map((k) => h('li', {}, k))),
-      h('h2', {}, 'Why it matters for UPSC'), h('p', {}, a.upscRelevance || '—'),
+      h('h2', {}, 'Why it matters for exams'), h('p', {}, a.upscRelevance || '—'),
       editForm),
     a.mergedInto ? h('div', { class: 'panel notice' }, 'This was a duplicate and was merged into ', h('a', { href: `#/article/${a.mergedInto}` }, 'another article'), '.') : null,
     inReview && lateSources.length ? h('div', { class: 'panel notice' },
@@ -238,12 +247,24 @@ async function articleView(id) {
       a.generation?.rawOutput ? h('details', {}, h('summary', {}, 'Raw AI output'), h('pre', {}, a.generation.rawOutput)) : null));
 }
 
+/** Row of exam checkboxes; `.value()` returns the ticked keys. */
+function examPicker(selected = []) {
+  const boxes = Object.entries(EXAMS).map(([k, label]) => {
+    const box = h('input', { type: 'checkbox', checked: selected.includes(k), 'data-k': k });
+    return h('label', { style: 'display:inline-flex;gap:4px;margin-right:12px;font-weight:normal' }, box, label);
+  });
+  const el = h('div', {}, ...boxes);
+  el.value = () => boxes.map((l) => l.querySelector('input')).filter((b) => b.checked).map((b) => b.dataset.k);
+  return el;
+}
+
 function newArticleView() {
   const f = {
     title: h('input'), summary: h('textarea'), body: h('textarea', { style: 'min-height:200px' }),
     upscRelevance: h('textarea'), keyPoints: h('textarea', { placeholder: 'One per line' }),
     gsPaper: h('select', {}, ['GS1', 'GS2', 'GS3', 'GS4', 'PRELIMS'].map((p) => h('option', {}, p))),
     subjects: h('input', { placeholder: 'e.g. polity, governance' }),
+    exams: examPicker(['upsc', 'state-psc']),
     sourceUrl: h('input', { type: 'url', placeholder: 'https://…' }), sourcePublisher: h('input'),
     facts: h('textarea', { placeholder: 'One checkable claim per line' }),
   };
@@ -256,7 +277,7 @@ function newArticleView() {
       const r = await api('/admin/articles', { method: 'POST', body: {
         title: f.title.value, summary: f.summary.value, body: f.body.value, upscRelevance: f.upscRelevance.value,
         keyPoints: lines(f.keyPoints.value),
-        tags: { gsPaper: f.gsPaper.value, subjects: f.subjects.value.split(',').map((s) => s.trim()).filter(Boolean) },
+        tags: { exams: f.exams.value(), gsPaper: f.gsPaper.value, subjects: f.subjects.value.split(',').map((s) => s.trim()).filter(Boolean) },
         sources: [{ url: f.sourceUrl.value, publisher: f.sourcePublisher.value || undefined }],
         factsToVerify: lines(f.facts.value),
       } });
@@ -323,7 +344,7 @@ function hindiPanel(a, questions, hindi, reload) {
       field('Summary', a.summary, f.summary),
       field('Explainer', a.body, f.body),
       field('Key points (one per line)', (a.keyPoints || []).join('\n'), f.keyPoints),
-      field('Why it matters for UPSC', a.upscRelevance, f.upscRelevance),
+      field('Why it matters for exams', a.upscRelevance, f.upscRelevance),
       h('button', { onclick: () => guarded(async () => {
         await api(`/admin/articles/${a._id}/translations/hi`, { method: 'PATCH', body: {
           title: f.title.value, summary: f.summary.value, body: f.body.value, upscRelevance: f.upscRelevance.value,

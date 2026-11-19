@@ -83,6 +83,7 @@ router.patch('/me', requireAuth, validate(z.object({
   name: z.string().trim().min(1).max(100).optional(),
   showOnLeaderboard: z.boolean().optional(),
   preferredSubjects: z.array(z.enum(require('../taxonomy/taxonomy').SUBJECT_KEYS)).max(16).optional(),
+  preferredExams: z.array(z.enum(require('../taxonomy/taxonomy').EXAM_KEYS)).max(7).optional(),
   lang: z.enum(['en', 'hi']).optional(),
   notificationPrefs: z.object({ dailyReminder: z.boolean().optional(), mock: z.boolean().optional() }).optional(),
 })), async (req, res) => {

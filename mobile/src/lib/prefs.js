@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Device preferences: text size, intro seen, feed, language and theme (system | light | dark). */
 const KEY = 'prefs:v1';
-const DEFAULTS = { textScale: 1, onboarded: false, subjects: [], feed: 'all', lang: 'en', theme: 'system' };
+const DEFAULTS = { textScale: 1, onboarded: false, subjects: [], exams: [], feed: 'all', lang: 'en', theme: 'system' };
 export const THEMES = ['system', 'light', 'dark'];
 export const TEXT_SCALES = [0.9, 1, 1.15, 1.3];
 
