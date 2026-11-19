@@ -10,6 +10,8 @@ import SignInPrompt from '../../components/SignInPrompt';
 import VerifyEmailBanner from '../../components/VerifyEmailBanner';
 import LanguageSwitch from '../../components/LanguageSwitch';
 import LegalLinks from '../../components/LegalLinks';
+import ThemeSwitch from '../../components/ThemeSwitch';
+import { usePrefs } from '../../lib/prefs';
 import { formatDate, shortName } from '../../lib/format';
 import { useMySubjects } from '../../lib/subjects-pref';
 import { useT } from '../../lib/i18n';
@@ -62,6 +64,12 @@ function GroupRow({ icon, title, sub, onPress, right, first }) {
   );
 }
 
+function ThemeRow({ first }) {
+  const { t } = useT();
+  const { prefs } = usePrefs();
+  return <GroupRow first={first} icon="contrast-outline" title={t('theme.title')} sub={t(`theme.${prefs.theme || 'system'}`)} right={<ThemeSwitch />} />;
+}
+
 function Avatar({ name }) {
   const c = useTheme();
   const initials = (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
@@ -69,21 +77,6 @@ function Avatar({ name }) {
     <View accessibilityElementsHidden importantForAccessibility="no" style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
       <T variant="title" color={c.onAccent}>{initials}</T>
     </View>
-  );
-}
-
-function LanguageCard() {
-  const c = useTheme();
-  const { t } = useT();
-  return (
-    <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md }}>
-      <Ionicons name="language-outline" size={22} color={c.text} />
-      <View style={{ flex: 1 }}>
-        <T variant="heading">{t('profile.language')}</T>
-        <T variant="small" color="textSecondary">{t('profile.languageSub')}</T>
-      </View>
-      <LanguageSwitch compact />
-    </Card>
   );
 }
 
@@ -109,7 +102,10 @@ export default function Profile() {
     return (
       <Screen>
         <T variant="display">{t('profile.title')}</T>
-        <LanguageCard />
+        <Card style={{ paddingVertical: spacing.xs }}>
+          <GroupRow first icon="language-outline" title={t('profile.language')} sub={t('profile.languageSub')} right={<LanguageSwitch compact />} />
+          <ThemeRow />
+        </Card>
         <SignInPrompt title={t('profile.trackTitle')} message={t('profile.trackMessage')} />
         <LegalLinks style={{ marginTop: spacing.xl }} />
       </Screen>
@@ -192,6 +188,7 @@ export default function Profile() {
           sub={mySubjects.length ? mySubjects.map((k) => subjectLabel(taxonomy, k, lang)).join(', ') : t('profile.subjectsEmpty')}
           onPress={() => router.push('/account/subjects')} />
         <GroupRow icon="language-outline" title={t('profile.language')} right={<LanguageSwitch compact />} />
+        <ThemeRow />
         <GroupRow icon="notifications-outline" title={t('profile.notifications')} sub={t('profile.notificationsSub')} onPress={() => router.push('/account/notifications')} />
       </Card>
 

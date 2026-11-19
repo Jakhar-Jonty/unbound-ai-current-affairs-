@@ -1,4 +1,6 @@
+import { useContext } from 'react';
 import { useColorScheme } from 'react-native';
+import { PrefsContext } from '../lib/prefs';
 import { light, dark } from './colors';
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
@@ -12,7 +14,10 @@ export const type = {
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '600', letterSpacing: 0.4 },
 };
 
-/** Current colours, following the device's light/dark setting. */
+/** Current colours: the theme chosen in Profile, or the device's light/dark setting ("system"). */
 export function useTheme() {
-  return useColorScheme() === 'dark' ? dark : light;
+  const system = useColorScheme();
+  const chosen = useContext(PrefsContext)?.prefs?.theme;
+  const scheme = chosen === 'light' || chosen === 'dark' ? chosen : system;
+  return scheme === 'dark' ? dark : light;
 }
