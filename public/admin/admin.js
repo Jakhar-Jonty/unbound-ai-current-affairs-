@@ -164,19 +164,29 @@ async function articleView(id) {
   const editForm = h('div', { hidden: true },
     ...Object.entries(fields).flatMap(([k, el]) => [h('label', {}, k === 'keyPoints' ? 'Key points (one per line)' : k === 'upscRelevance' ? 'Why it matters for exams' : k), el]),
     h('label', {}, 'Exams'), examsEdit,
-    a.status === 'published' ? [h('label', {}, 'Correction note'), correctionNote] : null,
+    a.status === 'published' ? [h('label', {}, 'Correction note (only if you change the text; not needed for exams)'), correctionNote] : null,
     h('div', { class: 'row', style: 'margin-top:8px' },
       h('button', { class: 'primary', onclick: () => guarded(async () => {
-        const body = {
+        // Send only what changed. Changing only the exams isn't a correction: no note,
+        // no new version, and the Hindi translation stays published.
+        const edited = {
           title: fields.title.value, summary: fields.summary.value, body: fields.body.value, upscRelevance: fields.upscRelevance.value,
           keyPoints: fields.keyPoints.value.split('\n').map((s) => s.trim()).filter(Boolean),
         };
+        const original = { title: a.title, summary: a.summary, body: a.body, upscRelevance: a.upscRelevance || '', keyPoints: a.keyPoints || [] };
+        const body = {};
+        for (const [k, v] of Object.entries(edited)) if (JSON.stringify(v) !== JSON.stringify(original[k])) body[k] = v;
+        const textChanged = Object.keys(body).length > 0;
         const exams = examsEdit.value();
         if (!exams.length) throw new Error('Tick at least one exam');
         if (exams.join() !== (a.tags.exams || []).join()) body.tags = { exams };
-        if (a.status === 'published') body.correctionNote = correctionNote.value;
+        if (!Object.keys(body).length) { toast('Nothing changed'); return; }
+        if (a.status === 'published' && textChanged) {
+          if (!correctionNote.value.trim()) throw new Error('Text changed: add a correction note (shown to readers)');
+          body.correctionNote = correctionNote.value;
+        }
         await api(`/admin/articles/${a._id}`, { method: 'PATCH', body });
-        toast('Saved'); reload();
+        toast(textChanged ? 'Saved' : 'Exams updated'); reload();
       }) }, 'Save changes'),
       h('button', { onclick: () => { editForm.hidden = true; } }, 'Cancel')));
 

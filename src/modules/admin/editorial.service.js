@@ -69,11 +69,15 @@ async function retractArticle(id, { userId, reason }) {
 /**
  * Edits an article. Draft/in-review edits are free. Editing published content is a
  * correction: it needs a note, bumps the version and stores a revision snapshot.
+ * Changing only tags (exams, GS paper, subjects, keywords) is not a correction: the
+ * text readers see is unchanged, so there's no note, no new version, and the Hindi
+ * translation (tied to the version) stays published.
  */
 async function updateArticle(id, changes, { userId, correctionNote }) {
   const article = await getArticleOr404(id);
   if (['rejected', 'retracted'].includes(article.status)) throw conflict(`Cannot edit an article that is ${article.status}`);
-  const isPublished = article.status === 'published';
+  const tagsOnly = Object.keys(changes).length > 0 && Object.keys(changes).every((k) => k === 'tags');
+  const isPublished = article.status === 'published' && !tagsOnly;
   if (isPublished && !correctionNote) throw badRequest('Editing published content requires a correctionNote explaining the change');
   if (isPublished && changes.factsToVerify) throw badRequest('Flagged facts cannot be changed after publishing');
 

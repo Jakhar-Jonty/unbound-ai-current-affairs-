@@ -183,7 +183,7 @@ const updateArticleSchema = z.object({ ...articleFields, correctionNote: z.strin
 router.patch('/articles/:id', validate(updateArticleSchema), async (req, res) => {
   const { correctionNote, ...changes } = req.valid.body;
   const article = await editorial.updateArticle(idParam(req), changes, { userId: req.user._id, correctionNote });
-  await audit(req, correctionNote ? 'article.correct' : 'article.edit', 'Article', article._id, { fields: Object.keys(changes), correctionNote, version: article.version });
+  await audit(req, correctionNote ? 'article.correct' : Object.keys(changes).every((k) => k === 'tags') ? 'article.retag' : 'article.edit', 'Article', article._id, { fields: Object.keys(changes), correctionNote, version: article.version });
   res.json({ article });
 });
 

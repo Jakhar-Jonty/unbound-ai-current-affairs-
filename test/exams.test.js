@@ -54,3 +54,21 @@ test('editors can change exam tags', async () => {
   const bad = await http().patch(`/api/v1/admin/articles/${a.id}`).set('Authorization', `Bearer ${token}`).send({ tags: { exams: [] } });
   assert.equal(bad.status, 400);
 });
+
+test('changing only the exams on a published article is not a correction and keeps Hindi', async () => {
+  const { token } = await require('./helpers').makeUser('editor');
+  const [a] = await publishedArticles(1);
+  await Article.updateOne({ _id: a._id }, { $set: { translations: { hi: { title: 'हिंदी शीर्षक', summary: 'सारांश', body: 'मुख्य भाग', keyPoints: ['बिंदु'], status: 'published', sourceVersion: a.version } } } });
+  const r = await http().patch(`/api/v1/admin/articles/${a.id}`).set('Authorization', `Bearer ${token}`).send({ tags: { exams: ['banking', 'ssc'] } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const after = await Article.findById(a._id);
+  assert.deepEqual([...after.tags.exams], ['banking', 'ssc']);
+  assert.equal(after.version, a.version, 'no new version');
+  assert.equal(after.corrections.length, 0, 'no correction shown to readers');
+  const hi = await http().get(`/api/v1/articles/${a.id}?lang=hi`);
+  assert.equal(hi.body.article?.lang ?? hi.body.lang, 'hi', 'Hindi still served');
+
+  // Changing the text is still a correction and still needs a note.
+  const noNote = await http().patch(`/api/v1/admin/articles/${a.id}`).set('Authorization', `Bearer ${token}`).send({ title: 'A corrected title here' });
+  assert.equal(noNote.status, 400);
+});
