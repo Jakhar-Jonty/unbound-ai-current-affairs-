@@ -111,8 +111,16 @@ async function autoPublishPanel() {
 async function articleListView(status, title) {
   const qs = status ? `?status=${status}&limit=50` : '?limit=50';
   const [{ items, total }, autoPanel] = await Promise.all([api(`/admin/articles${qs}`), status === 'in_review' ? autoPublishPanel() : null]);
+  const publishAll = status === 'in_review' && total > 0 && me.role === 'admin'
+    ? h('button', { class: 'primary', onclick: () => guarded(async () => {
+      if (!confirm(`Publish all ${total} waiting articles now, with their questions? They go live without an editor review. Hindi follows on the next translation run.`)) return;
+      const r = await api('/admin/articles/publish-waiting', { method: 'POST' });
+      toast(`Published ${r.published} articles and ${r.questions} questions${r.skipped ? `; ${r.skipped} need a source or question first` : ''}`);
+      reload();
+    }) }, `Publish all waiting (${total})`)
+    : null;
   return h('div', {}, autoPanel, h('div', { class: 'panel' },
-    h('h1', {}, `${title} (${total})`),
+    h('div', { class: 'row', style: 'justify-content:space-between;align-items:center' }, h('h1', {}, `${title} (${total})`), publishAll),
     items.length ? h('table', {},
       h('thead', {}, h('tr', {}, h('th', {}, 'Title'), h('th', {}, 'Status'), h('th', {}, 'Subjects'), h('th', {}, 'Facts'), h('th', {}, 'Sources'), h('th', {}, 'Written by'), h('th', {}, 'Created'))),
       h('tbody', {}, items.map((a) => h('tr', {},

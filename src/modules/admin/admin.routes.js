@@ -38,6 +38,14 @@ router.patch('/settings', adminOnly, validate(z.object({ autoPublish: z.boolean(
   res.json({ settings });
 });
 
+// Publishes the whole review queue at once (admins only). Hindi follows on the next
+// translate-content run.
+router.post('/articles/publish-waiting', adminOnly, async (req, res) => {
+  const result = await editorial.publishAllWaiting();
+  await audit(req, 'article.publish_all_waiting', 'Article', null, result);
+  res.json(result);
+});
+
 router.get('/dashboard', async (_req, res) => {
   const countBy = async (Model) => Object.fromEntries(
     (await Model.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])).map((r) => [r._id, r.n]),

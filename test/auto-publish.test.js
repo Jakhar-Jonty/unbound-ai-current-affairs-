@@ -69,3 +69,22 @@ test('only admins can change the switch; editors can see it', async () => {
   assert.equal(r.body.settings.autoPublish, true);
   assert.equal((await http().patch('/api/v1/admin/settings').set(admin.auth).send({ autoPublish: 'yes' })).status, 400);
 });
+
+test('publish all waiting: publishes the review queue, skips articles without questions', async () => {
+  await updateSettings({ autoPublish: false });
+  await generateOne(); await generateOne();
+  const [a, b] = await Article.find().sort({ createdAt: 1 });
+  await Question.deleteMany({ article: b._id }); // b can't be published without a question
+  const editor = await makeUser('editor');
+  const admin = await makeUser('admin');
+  assert.equal((await http().post('/api/v1/admin/articles/publish-waiting').set(editor.auth)).status, 403);
+  const r = await http().post('/api/v1/admin/articles/publish-waiting').set(admin.auth);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.published, 1);
+  assert.equal(r.body.skipped, 1);
+  assert.ok(r.body.questions >= 1);
+  assert.equal((await Article.findById(a._id)).status, 'published');
+  assert.equal((await Article.findById(a._id)).review.auto, true);
+  assert.equal((await Article.findById(b._id)).status, 'in_review');
+  assert.equal((await http().get('/api/v1/articles')).body.total, 1);
+});
