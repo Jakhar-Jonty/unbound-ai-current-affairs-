@@ -65,7 +65,8 @@
             "backgroundColor": "#151515"
           }
         }
-      ]
+      ],
+      "./plugins/withOptionalScreenFeatures"
     ],
     "extra": {
       "apiUrl": "https://unbounddaily.zonty.in",
