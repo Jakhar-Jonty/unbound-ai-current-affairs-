@@ -70,10 +70,7 @@
     ],
     "extra": {
       "apiUrl": "https://unbounddaily.zonty.in",
-      "storeUrl": {
-        "ios": "",
-        "android": ""
-      },
+      "storeUrl": "https://play.google.com/store/apps/details?id=com.unbound.daily",
       "googleClientIds": {
         "web": "469270210500-l4ll75ufpghj2k6iqi319u1347m42gop.apps.googleusercontent.com",
         "ios": ""
