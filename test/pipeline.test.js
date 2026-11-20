@@ -190,11 +190,11 @@ test('higher-priority feeds are written first', async () => {
   assert.equal(first[0].url, 'https://n.test/explained');
 });
 
-test('Indian Express Explained drops sports and culture sections only', () => {
+test('default feeds: Indian Express replaced by The Hindu economy and international desks', () => {
   const { DEFAULT_FEEDS } = require('../src/modules/pipeline/feeds');
-  const re = new RegExp(DEFAULT_FEEDS.find((f) => f.id === 'indianexpress-explained').excludeUrl, 'i');
-  assert.equal(re.test('https://indianexpress.com/article/explained/explained-sports/dhoni-retires-10000/'), true);
-  assert.equal(re.test('https://indianexpress.com/article/explained/explained-culture/bond-casting-10001/'), true);
-  assert.equal(re.test('https://indianexpress.com/article/explained/explained-economics/food-inflation-10002/'), false);
-  assert.equal(re.test('https://indianexpress.com/article/explained/explained-law/bilkis-bano-10003/'), false);
+  const ids = DEFAULT_FEEDS.map((f) => f.id);
+  assert.equal(ids.includes('indianexpress-explained'), false, 'blocked from data-centre IPs');
+  assert.ok(ids.includes('thehindu-economy'));
+  assert.ok(ids.includes('thehindu-international'));
+  assert.equal(new Set(ids).size, ids.length, 'feed ids are unique');
 });
