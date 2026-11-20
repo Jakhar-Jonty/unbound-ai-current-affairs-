@@ -1,4 +1,5 @@
 'use strict';
+const { getSetting } = require('../settings/settings');
 const config = require('../../config');
 const { Article } = require('../content/article.model');
 const { Question } = require('../quiz/question.model');
@@ -78,6 +79,11 @@ async function translateArticle(articleId, { provider = createProvider() } = {})
         { $set: { 'translations.hi': { stem: t.stem, options: t.options, explanation: t.explanation, status: 'in_review', sourceVersion: q.version } } },
       );
     }
+    // Auto-publish (admin setting): Hindi that passed the checks above goes live.
+    if (await getSetting('autoPublish')) {
+      await require('../admin/translation.service').publishHindi(article._id, {}).catch(() => {});
+      return 'published';
+    }
     return 'translated';
   } catch (err) {
     if (isRateLimit(err)) throw err;
@@ -98,7 +104,8 @@ async function translateContent({ provider = createProvider(), limit = config.pi
   for (const a of candidates) {
     try {
       const outcome = await translateArticle(a._id, { provider });
-      if (outcome === 'translated') stats.translated += 1;
+      if (outcome === 'translated' || outcome === 'published') stats.translated += 1;
+      if (outcome === 'published') stats.published = (stats.published || 0) + 1;
       if (outcome === 'failed') stats.failed += 1;
     } catch (err) {
       if (!isRateLimit(err)) throw err;

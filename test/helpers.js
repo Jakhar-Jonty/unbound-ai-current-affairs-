@@ -2,6 +2,8 @@
 process.env.NODE_ENV = 'test';
 process.env.AI_PROVIDER = process.env.AI_PROVIDER || 'mock';
 process.env.PIPELINE_FETCH_FULL_TEXT = 'false';
+// Most tests exercise the editor review flow; auto-publish tests turn it on explicitly.
+process.env.AUTO_PUBLISH = process.env.AUTO_PUBLISH || 'false';
 
 const path = require('node:path');
 const mongoose = require('mongoose');
