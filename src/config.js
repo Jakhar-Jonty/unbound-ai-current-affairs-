@@ -60,6 +60,8 @@ const config = {
     // Articles translated into Hindi per run (one AI call each).
     translateBatchSize: int('TRANSLATE_BATCH_SIZE', 5),
     mockSize: int('MOCK_SIZE', 50),
+    // Default for the admin panel's auto-publish switch (until an admin changes it there).
+    autoPublishDefault: bool('AUTO_PUBLISH', true),
   },
   mail: {
     // Any SMTP provider, e.g. smtps://user:pass@smtp.example.com:465

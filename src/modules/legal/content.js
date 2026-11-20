@@ -14,7 +14,7 @@ const en = {
     lead: `Daily current affairs for competitive exams: UPSC, State PSC, SSC, Railways, Banking, Insurance and Defence. In English and Hindi, with short explainers, a daily quiz, practice questions and a weekly mock test.`,
     sections: [
       { h: 'What you get', ul: [
-        'Daily articles from reliable public sources, checked by an editor before they are published.',
+        'Daily articles from reliable public sources, each linked to its sources. Errors are corrected when found.',
         'Each story tagged by GS paper and subject, with key points and sources.',
         'Choose your exams and see the stories that matter for them.',
         'A daily 10-question quiz, a weekly mock test with negative marking and a weekly leaderboard.',
@@ -59,7 +59,7 @@ const en = {
         'If you take the daily quiz or the weekly mock test, your first name and the initial of your last name (for example "Asha K.") may appear on the leaderboard with your score. You can turn this off in Profile at any time.',
       ] },
       { h: '6. AI and content', p: [
-        'Articles and questions are written with the help of AI from public news sources and are reviewed by an editor before publishing. Your personal data is never sent to AI providers.',
+        'Articles, questions and Hindi translations are written with the help of AI from public news sources. They are checked automatically, and editors review and correct them, but some are published before an editor has reviewed them. Your personal data is never sent to AI providers.',
       ] },
       { h: '7. Who we share data with', p: [
         'Only these service providers, and only what each needs to do its job for us:',
@@ -106,7 +106,7 @@ const en = {
         `${v.app} provides current-affairs articles, quizzes, practice questions and mock tests to help with preparation for competitive exams such as UPSC, State PSC, SSC, Railways, Banking, Insurance and Defence. It is an independent study aid and is not affiliated with the Union Public Service Commission or any government body.`,
       ] },
       { h: '2. Accuracy', p: [
-        'Content is prepared with the help of AI from public news sources and checked by editors, but it may contain errors or become outdated. Always confirm important facts from official sources. We are not responsible for exam results or decisions made on the basis of the content.',
+        'Content is prepared with the help of AI from public news sources. It is checked automatically and editors review and correct it, but not every item is reviewed before publishing and it may contain errors or become outdated. Always confirm important facts from official sources. We are not responsible for exam results or decisions made on the basis of the content.',
       ] },
       { h: '3. Your account', ul: [
         'You must be 18 or older and give accurate details.',
@@ -203,7 +203,7 @@ const hi = {
     lead: 'प्रतियोगी परीक्षाओं के लिए रोज़ का करेंट अफ़ेयर्स: UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा और रक्षा। हिंदी और अंग्रेज़ी में, छोटे लेख, रोज़ की क्विज़, अभ्यास प्रश्न और साप्ताहिक मॉक टेस्ट के साथ।',
     sections: [
       { h: 'ऐप में क्या है', ul: [
-        'विश्वसनीय सार्वजनिक स्रोतों से रोज़ के लेख, प्रकाशन से पहले संपादक द्वारा जाँचे गए।',
+        'विश्वसनीय सार्वजनिक स्रोतों से रोज़ के लेख, हर लेख के साथ उसके स्रोत। त्रुटि मिलने पर सुधार किया जाता है।',
         'हर ख़बर GS पेपर और विषय के अनुसार, मुख्य बिंदुओं और स्रोतों के साथ।',
         'अपनी परीक्षाएँ चुनें और उनके लिए ज़रूरी ख़बरें देखें।',
         'रोज़ 10 प्रश्नों की क्विज़, नकारात्मक अंकन वाला साप्ताहिक मॉक टेस्ट और साप्ताहिक लीडरबोर्ड।',
@@ -248,7 +248,7 @@ const hi = {
         'रोज़ की क्विज़ या साप्ताहिक मॉक टेस्ट देने पर आपका पहला नाम और उपनाम का पहला अक्षर (जैसे "Asha K.") आपके अंकों के साथ लीडरबोर्ड पर दिख सकता है। इसे आप प्रोफ़ाइल में कभी भी बंद कर सकते हैं।',
       ] },
       { h: '6. AI और सामग्री', p: [
-        'लेख और प्रश्न सार्वजनिक समाचार स्रोतों से AI की मदद से लिखे जाते हैं और प्रकाशन से पहले संपादक उनकी समीक्षा करते हैं। आपका निजी डेटा कभी AI प्रदाताओं को नहीं भेजा जाता।',
+        'लेख, प्रश्न और हिंदी अनुवाद सार्वजनिक समाचार स्रोतों से AI की मदद से लिखे जाते हैं। इनकी स्वचालित जाँच होती है और संपादक इनकी समीक्षा व सुधार करते हैं, पर कुछ संपादकीय समीक्षा से पहले प्रकाशित हो जाते हैं। आपका निजी डेटा कभी AI प्रदाताओं को नहीं भेजा जाता।',
       ] },
       { h: '7. डेटा किसके साथ साझा होता है', p: [
         'केवल इन सेवा प्रदाताओं के साथ, और केवल उतना जितना उनके काम के लिए ज़रूरी है:',
@@ -295,7 +295,7 @@ const hi = {
         `${v.app} UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा और रक्षा जैसी प्रतियोगी परीक्षाओं की तैयारी के लिए करेंट अफ़ेयर्स लेख, क्विज़, अभ्यास प्रश्न और मॉक टेस्ट देता है। यह एक स्वतंत्र अध्ययन साधन है और संघ लोक सेवा आयोग या किसी सरकारी संस्था से संबद्ध नहीं है।`,
       ] },
       { h: '2. सटीकता', p: [
-        'सामग्री सार्वजनिक समाचार स्रोतों से AI की मदद से तैयार और संपादकों द्वारा जाँची जाती है, फिर भी इसमें त्रुटि हो सकती है या यह पुरानी हो सकती है। ज़रूरी तथ्य आधिकारिक स्रोतों से अवश्य जाँचें। परीक्षा परिणाम या सामग्री के आधार पर लिए गए निर्णयों के लिए हम ज़िम्मेदार नहीं हैं।',
+        'सामग्री सार्वजनिक समाचार स्रोतों से AI की मदद से तैयार होती है। इसकी स्वचालित जाँच होती है और संपादक समीक्षा व सुधार करते हैं, पर हर सामग्री प्रकाशन से पहले नहीं जाँची जाती, इसलिए इसमें त्रुटि हो सकती है या यह पुरानी हो सकती है। ज़रूरी तथ्य आधिकारिक स्रोतों से अवश्य जाँचें। परीक्षा परिणाम या सामग्री के आधार पर लिए गए निर्णयों के लिए हम ज़िम्मेदार नहीं हैं।',
       ] },
       { h: '3. आपका खाता', ul: [
         'आपकी आयु 18 वर्ष या अधिक हो और विवरण सही हों।',

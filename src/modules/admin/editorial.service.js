@@ -16,6 +16,25 @@ async function getArticleOr404(id, { withRaw = false } = {}) {
  * Publishes an article and its pending questions. The editor must confirm every
  * fact the generator flagged (by index), and the article must cite a source.
  */
+/**
+ * Auto-publish (admin setting): puts a freshly generated article and its questions
+ * live without an editor. Flagged facts stay unconfirmed so editors can still check
+ * them later; review.auto marks it in the admin panel.
+ */
+async function autoPublishArticle(article) {
+  const now = new Date();
+  article.status = 'published';
+  article.publishedAt = article.publishedAt || now;
+  article.review = { reviewedAt: now, notes: 'Auto-published', auto: true };
+  await article.save();
+  await recordRevision(article, { reason: 'auto-published' });
+  const q = await Question.updateMany(
+    { article: article._id, status: { $in: ['in_review', 'draft'] } },
+    { $set: { status: 'published', publishedAt: now } },
+  );
+  return { article, questionsPublished: q.modifiedCount };
+}
+
 async function approveArticle(id, { userId, confirmedFacts = [], notes }) {
   const article = await getArticleOr404(id);
   if (!['in_review', 'draft'].includes(article.status)) throw conflict(`Cannot approve an article that is ${article.status}`);
@@ -168,4 +187,5 @@ async function mergeArticles(sourceId, targetId, { userId }) {
   return { target, source, questionsMoved: moved.modifiedCount };
 }
 
-module.exports = { mergeArticles, approveArticle, rejectArticle, retractArticle, updateArticle, updateQuestion, setQuestionStatus, getArticleOr404 };
+module.exports = {
+  autoPublishArticle, mergeArticles, approveArticle, rejectArticle, retractArticle, updateArticle, updateQuestion, setQuestionStatus, getArticleOr404 };

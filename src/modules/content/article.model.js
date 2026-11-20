@@ -87,6 +87,8 @@ const articleSchema = new mongoose.Schema(
       reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       reviewedAt: Date,
       notes: String,
+      // Published by the auto-publish setting, without an editor review.
+      auto: Boolean,
     },
     retraction: {
       reason: String,

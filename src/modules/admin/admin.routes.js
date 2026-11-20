@@ -27,6 +27,17 @@ const adminOnly = requireRole('admin');
 const idParam = (req) => objectId.parse(req.params.id);
 
 // ---------- Dashboard ----------
+// App-wide switches. Everyone on the editorial team can see them; only admins change them.
+router.get('/settings', async (_req, res) => {
+  res.json({ settings: await require('../settings/settings').getSettings() });
+});
+
+router.patch('/settings', adminOnly, validate(z.object({ autoPublish: z.boolean().optional() })), async (req, res) => {
+  const settings = await require('../settings/settings').updateSettings(req.valid.body, { userId: req.user._id });
+  await audit(req, 'settings.update', 'Setting', null, req.valid.body);
+  res.json({ settings });
+});
+
 router.get('/dashboard', async (_req, res) => {
   const countBy = async (Model) => Object.fromEntries(
     (await Model.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }])).map((r) => [r._id, r.n]),
@@ -52,7 +63,7 @@ router.get('/articles', validate(pagination.extend({ status: z.enum(ARTICLE_STAT
   const filter = { ...(status ? { status } : {}), ...(q ? { $text: { $search: q } } : {}) };
   const [items, total] = await Promise.all([
     Article.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)
-      .select('slug title status version tags createdAt publishedAt generation.provider generation.model factsToVerify sources.publisher').lean(),
+      .select('slug title status version tags createdAt publishedAt review.auto generation.provider generation.model factsToVerify sources.publisher').lean(),
     Article.countDocuments(filter),
   ]);
   res.json({ items, page, limit, total });

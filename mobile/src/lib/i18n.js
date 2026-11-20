@@ -111,7 +111,7 @@ const D = {
   'today.noneInSubjects': ['Nothing in your subjects yet', 'आपके विषयों में अभी कुछ नहीं'],
   'today.switchToAll': ['Switch to All to see every story.', 'सभी खबरें देखने के लिए “सभी” चुनें।'],
   'today.noArticles': ['No articles yet', 'अभी कोई लेख नहीं'],
-  'today.noArticlesMessage': ['New explainers are published through the day after editorial review.', 'संपादकीय समीक्षा के बाद दिन भर नए लेख प्रकाशित होते हैं।'],
+  'today.noArticlesMessage': ['New explainers are published through the day.', 'दिन भर नए लेख प्रकाशित होते हैं।'],
   'today.continueReading': ['Continue reading', 'पढ़ना जारी रखें'],
   'today.percentRead': ['{p}% read', '{p}% पढ़ा'],
   'today.minLeft': ['about {n} min left', 'लगभग {n} मिनट बाकी'],
@@ -450,7 +450,7 @@ const D = {
 
   // ---------- intro ----------
   'onb.s1.title': ['Current affairs for every exam', 'हर परीक्षा के लिए करेंट अफेयर्स'],
-  'onb.s1.body': ['Every day, the news that matters for UPSC, State PSC, SSC, Railways, Banking, Insurance and Defence exams, explained simply. Each explainer is checked by an editor against its sources.', 'हर दिन UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा और रक्षा परीक्षाओं के लिए ज़रूरी खबरें, आसान व्याख्या के साथ। हर लेख को संपादक स्रोतों से मिलाकर जाँचते हैं।'],
+  'onb.s1.body': ['Every day, the news that matters for UPSC, State PSC, SSC, Railways, Banking, Insurance and Defence exams, explained simply, with links to the sources.', 'हर दिन UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा और रक्षा परीक्षाओं के लिए ज़रूरी खबरें, आसान व्याख्या और स्रोतों के लिंक के साथ।'],
   'onb.s2.title': ['A 5-minute quiz every morning', 'हर सुबह 5 मिनट का क्विज़'],
   'onb.s2.body': ['Exam-style questions from the latest news, with explanations. Build a streak, take the weekly mock test and see where you stand.', 'ताज़ा खबरों से परीक्षा जैसे प्रश्न, व्याख्या के साथ। अपनी लय बनाएँ, साप्ताहिक मॉक टेस्ट दें और देखें आप कहाँ खड़े हैं।'],
   'onb.s3.title': ['Practise where you’re weakest', 'जहाँ कमज़ोर हैं, वहाँ अभ्यास करें'],

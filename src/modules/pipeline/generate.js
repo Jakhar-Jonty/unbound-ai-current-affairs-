@@ -1,4 +1,5 @@
 'use strict';
+const { getSetting } = require('../settings/settings');
 const config = require('../../config');
 const { RawItem } = require('./rawItem.model');
 const { Article } = require('../content/article.model');
@@ -207,6 +208,10 @@ async function processStory(items, { provider, fetchImpl, maxAttempts, run }) {
       })),
     );
     await markItems(items, { status: 'processed', article: article._id, lastError: null });
+    if (await getSetting('autoPublish')) {
+      await require('../admin/editorial.service').autoPublishArticle(article);
+      return 'published';
+    }
     return 'created';
   } catch (err) {
     const message = String(err.message || err).slice(0, 1000);
@@ -226,8 +231,9 @@ async function processStory(items, { provider, fetchImpl, maxAttempts, run }) {
 }
 
 /**
- * Turns queued stories into draft articles + questions in the editor review queue
- * (status in_review). Nothing generated here is visible to users until approved.
+ * Turns queued stories into articles + questions. With auto-publish on (admin
+ * setting) they go live straight away; otherwise they wait in the editor review
+ * queue (status in_review) and nothing is visible to users until approved.
  * `limit` is the number of stories per run; each story may contain several items.
  */
 async function generateContent({
@@ -247,7 +253,8 @@ async function generateContent({
     model: provider.model,
     stories: stories.length,
     claimed: stories.reduce((n, st) => n + st.length, 0),
-    created: count('created'),
+    created: count('created') + count('published'),
+    published: count('published'),
     attached: count('attached'),
     skipped: count('skipped'),
     retry: count('retry'),

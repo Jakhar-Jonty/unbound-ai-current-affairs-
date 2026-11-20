@@ -28,7 +28,7 @@ Daily current affairs for UPSC, SSC, Banking, Railways & Defence. Hindi too.
 ```
 Unbound Daily turns the day's news into exam-ready notes, in English and Hindi.
 
-Preparing for UPSC, a State PSC, SSC, Railways, Banking, Insurance or Defence exams? Pick your exams and get short, clear explainers on the stories that matter for them. Each story shows which exams it is useful for, with key points, background and links to the original sources. An editor checks every article before it is published.
+Preparing for UPSC, a State PSC, SSC, Railways, Banking, Insurance or Defence exams? Pick your exams and get short, clear explainers on the stories that matter for them. Each story shows which exams it is useful for, with key points, background and links to the original sources.
 
 WHAT'S INSIDE
 • Daily current affairs: Polity, Economy, Banking, Environment, International Relations, Science & Tech, Defence, Awards, Appointments, Sports, Places in News and more
@@ -50,7 +50,7 @@ Read articles without signing up. Create a free account to take quizzes, track p
 BUILT FOR ASPIRANTS
 Content focuses on facts that get asked: schemes, reports and indices, RBI and banking news, constitutional provisions, appointments, awards, important days, defence exercises, places in the news and international agreements.
 
-Unbound Daily is an independent study app. It is not affiliated with UPSC, SSC, IBPS, RRB or any government body. Articles are prepared with the help of AI from public news sources and reviewed by editors; always confirm key facts from official sources.
+Unbound Daily is an independent study app. It is not affiliated with UPSC, SSC, IBPS, RRB or any government body. Articles are prepared with the help of AI from public news sources, checked automatically and corrected by editors when errors are found; always confirm key facts from official sources.
 
 Questions or corrections: write to us from the Contact page at unbounddaily.zonty.in.
 ```
@@ -74,7 +74,7 @@ UPSC, SSC, बैंकिंग, रेलवे, रक्षा के लि
 ```
 Unbound Daily रोज़ की ख़बरों को परीक्षा के लिए तैयार नोट्स में बदलता है, हिंदी और अंग्रेज़ी में।
 
-UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा या रक्षा परीक्षाओं की तैयारी कर रहे हैं? अपनी परीक्षाएँ चुनें और उनके लिए ज़रूरी ख़बरों पर छोटे, स्पष्ट लेख पाएँ। हर ख़बर बताती है कि वह किन परीक्षाओं के लिए उपयोगी है, मुख्य बिंदुओं, पृष्ठभूमि और मूल स्रोतों के लिंक के साथ। प्रकाशन से पहले हर लेख की जाँच संपादक करते हैं।
+UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बीमा या रक्षा परीक्षाओं की तैयारी कर रहे हैं? अपनी परीक्षाएँ चुनें और उनके लिए ज़रूरी ख़बरों पर छोटे, स्पष्ट लेख पाएँ। हर ख़बर बताती है कि वह किन परीक्षाओं के लिए उपयोगी है, मुख्य बिंदुओं, पृष्ठभूमि और मूल स्रोतों के लिंक के साथ।
 
 ऐप में क्या है
 • रोज़ का करेंट अफ़ेयर्स: राजव्यवस्था, अर्थव्यवस्था, बैंकिंग, पर्यावरण, अंतरराष्ट्रीय संबंध, विज्ञान और प्रौद्योगिकी, रक्षा, पुरस्कार, नियुक्तियाँ, खेल, चर्चा में रहे स्थान आदि
@@ -96,7 +96,7 @@ UPSC, राज्य PSC, SSC, रेलवे, बैंकिंग, बी�
 अभ्यर्थियों के लिए
 सामग्री उन तथ्यों पर ध्यान देती है जो पूछे जाते हैं: योजनाएँ, रिपोर्ट और सूचकांक, RBI और बैंकिंग ख़बरें, संवैधानिक प्रावधान, नियुक्तियाँ, पुरस्कार, महत्वपूर्ण दिवस, रक्षा अभ्यास, चर्चा में रहे स्थान और अंतरराष्ट्रीय समझौते।
 
-Unbound Daily एक स्वतंत्र अध्ययन ऐप है। यह UPSC, SSC, IBPS, RRB या किसी सरकारी संस्था से संबद्ध नहीं है। लेख सार्वजनिक समाचार स्रोतों से AI की मदद से तैयार और संपादकों द्वारा जाँचे जाते हैं; ज़रूरी तथ्य आधिकारिक स्रोतों से अवश्य जाँचें।
+Unbound Daily एक स्वतंत्र अध्ययन ऐप है। यह UPSC, SSC, IBPS, RRB या किसी सरकारी संस्था से संबद्ध नहीं है। लेख सार्वजनिक समाचार स्रोतों से AI की मदद से तैयार होते हैं, इनकी स्वचालित जाँच होती है और त्रुटि मिलने पर संपादक सुधार करते हैं; ज़रूरी तथ्य आधिकारिक स्रोतों से अवश्य जाँचें।
 
 प्रश्न या सुधार: unbounddaily.zonty.in के संपर्क पेज से हमें लिखें।
 ```

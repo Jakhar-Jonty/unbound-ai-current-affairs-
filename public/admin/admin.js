@@ -88,21 +88,41 @@ function loginView() {
   return form;
 }
 
+/** Auto-publish switch. Shown on the review queue and the Pipeline page; only admins can change it. */
+async function autoPublishPanel() {
+  const { settings } = await api('/admin/settings');
+  const on = !!settings.autoPublish;
+  const isAdmin = me.role === 'admin';
+  return h('div', { class: on ? 'panel notice' : 'panel' },
+    h('div', { class: 'row', style: 'justify-content:space-between;align-items:center' },
+      h('div', {},
+        h('strong', {}, `Auto-publish is ${on ? 'ON' : 'OFF'}`),
+        h('div', { class: 'muted' }, on
+          ? 'New AI articles, their questions and Hindi translations that pass the automatic checks go live straight away. Spot-check them under Published; correct or retract anything wrong.'
+          : 'New AI articles wait here until an editor approves them. Hindi waits in the Hindi tab.')),
+      isAdmin ? h('button', { class: on ? 'danger' : 'primary', onclick: () => guarded(async () => {
+        if (on && !confirm('Turn auto-publish OFF? New articles will wait for an editor to approve them.')) return;
+        if (!on && !confirm('Turn auto-publish ON? New AI articles will go live without an editor checking them.')) return;
+        await api('/admin/settings', { method: 'PATCH', body: { autoPublish: !on } });
+        toast(`Auto-publish ${on ? 'off' : 'on'}`); reload();
+      }) }, on ? 'Turn off' : 'Turn on') : h('span', { class: 'muted' }, 'Only admins can change this')));
+}
+
 async function articleListView(status, title) {
   const qs = status ? `?status=${status}&limit=50` : '?limit=50';
-  const { items, total } = await api(`/admin/articles${qs}`);
-  return h('div', { class: 'panel' },
+  const [{ items, total }, autoPanel] = await Promise.all([api(`/admin/articles${qs}`), status === 'in_review' ? autoPublishPanel() : null]);
+  return h('div', {}, autoPanel, h('div', { class: 'panel' },
     h('h1', {}, `${title} (${total})`),
     items.length ? h('table', {},
       h('thead', {}, h('tr', {}, h('th', {}, 'Title'), h('th', {}, 'Status'), h('th', {}, 'Subjects'), h('th', {}, 'Facts'), h('th', {}, 'Sources'), h('th', {}, 'Written by'), h('th', {}, 'Created'))),
       h('tbody', {}, items.map((a) => h('tr', {},
         h('td', {}, h('a', { href: `#/article/${a._id}` }, a.title)),
-        h('td', {}, badge(a.status), a.version > 1 ? h('span', { class: 'muted' }, ` v${a.version}`) : null),
+        h('td', {}, badge(a.status), a.review?.auto ? h('span', { class: 'muted', title: 'Published automatically, not reviewed by an editor' }, ' auto') : null, a.version > 1 ? h('span', { class: 'muted' }, ` v${a.version}`) : null),
         h('td', { class: 'muted' }, (a.tags?.subjects || []).join(', ')),
         h('td', { class: 'muted' }, String(a.factsToVerify?.length || 0)),
         h('td', { class: 'muted' }, String(a.sources?.length || 0)),
         h('td', { class: 'muted' }, a.generation?.provider || '—'),
-        h('td', { class: 'muted' }, fmt(a.createdAt)))))) : h('p', { class: 'muted' }, 'Nothing here.'));
+        h('td', { class: 'muted' }, fmt(a.createdAt)))))) : h('p', { class: 'muted' }, 'Nothing here.')));
 }
 
 function questionCard(q, article, reload) {
@@ -394,10 +414,11 @@ async function hindiView() {
 }
 
 async function pipelineView() {
-  const [dash, runs, failed] = await Promise.all([api('/admin/dashboard'), api('/admin/jobs/runs?limit=20'), api('/admin/raw-items?status=failed&limit=20')]);
+  const [dash, runs, failed, autoPanel] = await Promise.all([api('/admin/dashboard'), api('/admin/jobs/runs?limit=20'), api('/admin/raw-items?status=failed&limit=20'), autoPublishPanel()]);
   const isAdmin = me.role === 'admin';
   const counts = (o) => Object.entries(o).map(([k, v]) => `${k.replace('_', ' ')}: ${v}`).join(' · ') || '—';
   return h('div', {},
+    autoPanel,
     h('div', { class: 'panel' },
       h('h1', {}, 'Content status'),
       h('p', {}, h('strong', {}, 'Feed items: '), counts(dash.rawItems)),
