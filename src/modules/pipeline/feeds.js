@@ -29,12 +29,14 @@ const RBI_ROUTINE = [
 // and made up ~80% of the feed. National stories have one segment: /news/national/<story>/.
 const HINDU_LOCAL_DESKS = 'thehindu\\.com/(news/national/[^/]+/[^/]+/article\\d+|news/cities/|videos/|books/|entertainment/|sport/)';
 
-// Indian Express Explained is high value, except its sports and culture/entertainment sections.
-const IE_SOFT_SECTIONS = 'indianexpress\\.com/article/explained/explained-(sports|culture|entertainment|lifestyle|books)/';
+// Indian Express is not a default: indianexpress.com returns 403 to data-centre IPs
+// (it works from a home connection, not from the VPS). The Hindu's economy and
+// international desks cover the same ground (banking/economy, international relations).
 
 const DEFAULT_FEEDS = [
   { id: 'rbi-press', publisher: 'Reserve Bank of India', url: 'https://www.rbi.org.in/pressreleases_rss.xml', exclude: RBI_ROUTINE, priority: 3 },
-  { id: 'indianexpress-explained', publisher: 'The Indian Express', url: 'https://indianexpress.com/section/explained/feed/', excludeUrl: IE_SOFT_SECTIONS, priority: 3 },
+  { id: 'thehindu-economy', publisher: 'The Hindu', url: 'https://www.thehindu.com/business/Economy/feeder/default.rss', priority: 3 },
+  { id: 'thehindu-international', publisher: 'The Hindu', url: 'https://www.thehindu.com/news/international/feeder/default.rss', priority: 2 },
   { id: 'downtoearth', publisher: 'Down To Earth', url: 'https://www.downtoearth.org.in/stories.rss', priority: 2 },
   { id: 'thehindu-national', publisher: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss', excludeUrl: HINDU_LOCAL_DESKS, priority: 1 },
 ];
