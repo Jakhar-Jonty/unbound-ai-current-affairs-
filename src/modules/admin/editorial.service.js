@@ -35,6 +35,23 @@ async function autoPublishArticle(article) {
   return { article, questionsPublished: q.modifiedCount };
 }
 
+/**
+ * "Publish all waiting": publishes every article in the review queue that has a
+ * source and at least one question, the same way auto-publish does. Articles that
+ * can't be published (no source or no question) stay in the queue and are counted.
+ */
+async function publishAllWaiting() {
+  const waiting = await Article.find({ status: 'in_review' });
+  let published = 0; let questions = 0; let skipped = 0;
+  for (const article of waiting) {
+    const hasQuestion = await Question.exists({ article: article._id, status: { $in: ['in_review', 'draft', 'published'] } });
+    if (!article.sources.length || !hasQuestion) { skipped += 1; continue; }
+    const r = await autoPublishArticle(article);
+    published += 1; questions += r.questionsPublished;
+  }
+  return { published, questions, skipped };
+}
+
 async function approveArticle(id, { userId, confirmedFacts = [], notes }) {
   const article = await getArticleOr404(id);
   if (!['in_review', 'draft'].includes(article.status)) throw conflict(`Cannot approve an article that is ${article.status}`);
@@ -188,4 +205,5 @@ async function mergeArticles(sourceId, targetId, { userId }) {
 }
 
 module.exports = {
-  autoPublishArticle, mergeArticles, approveArticle, rejectArticle, retractArticle, updateArticle, updateQuestion, setQuestionStatus, getArticleOr404 };
+  autoPublishArticle,
+  publishAllWaiting, mergeArticles, approveArticle, rejectArticle, retractArticle, updateArticle, updateQuestion, setQuestionStatus, getArticleOr404 };
