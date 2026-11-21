@@ -37,6 +37,7 @@ function useNotificationRouting() {
       const data = response?.notification?.request?.content?.data || {};
       if (data.quizId) router.push(`/quiz/${data.quizId}`);
       else if (data.articleId) router.push(`/article/${data.articleId}`);
+      else if (data.type === 'digest') router.navigate('/');
     };
     const last = Notifications.getLastNotificationResponse?.();
     if (last) open(last);

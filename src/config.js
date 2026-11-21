@@ -56,6 +56,7 @@ const config = {
       weeklyMock: process.env.CRON_WEEKLY_MOCK || '0 8 * * 0',
       mockReminder: process.env.CRON_MOCK_REMINDER || '0 18 * * 6',
       dailyReminder: process.env.CRON_DAILY_REMINDER || '0 20 * * *',
+      dailyDigest: process.env.CRON_DAILY_DIGEST || '30 18 * * *',
     },
     // Articles translated into Hindi per run (one AI call each).
     translateBatchSize: int('TRANSLATE_BATCH_SIZE', 5),

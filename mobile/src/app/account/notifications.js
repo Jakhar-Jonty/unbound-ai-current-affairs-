@@ -27,7 +27,7 @@ export default function NotificationSettings() {
   const { t } = useT();
   const { user, signedIn, updateProfile } = useAuth();
   if (!signedIn) return <Screen edges={[]}><SignInPrompt icon="notifications-outline" /></Screen>;
-  const prefs = user.notificationPrefs || { dailyReminder: true, mock: true };
+  const prefs = user.notificationPrefs || { dailyReminder: true, mock: true, digest: true };
   const set = (k) => (v) => updateProfile({ notificationPrefs: { [k]: v } }).catch(() => {});
   return (
     <Screen edges={[]}>
@@ -36,6 +36,8 @@ export default function NotificationSettings() {
         <Row icon="flame-outline" title={t('notif.daily')} sub={t('notif.dailySub')} value={prefs.dailyReminder !== false} onChange={set('dailyReminder')} />
         <View style={{ height: 1, backgroundColor: c.border }} />
         <Row icon="ribbon-outline" title={t('notif.mock')} sub={t('notif.mockSub')} value={prefs.mock !== false} onChange={set('mock')} />
+        <View style={{ height: 1, backgroundColor: c.border }} />
+        <Row icon="newspaper-outline" title={t('notif.digest')} sub={t('notif.digestSub')} value={prefs.digest !== false} onChange={set('digest')} />
       </Card>
       <T variant="small" color="textSecondary" style={{ marginTop: spacing.lg }}>{t('notif.morning')}</T>
       <T variant="small" color="textSecondary" style={{ marginTop: spacing.sm }}>{t('notif.permission')}</T>

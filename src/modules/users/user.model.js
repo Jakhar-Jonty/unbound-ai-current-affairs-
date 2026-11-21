@@ -39,6 +39,8 @@ const userSchema = new mongoose.Schema(
     notificationPrefs: {
       dailyReminder: { type: Boolean, default: true },
       mock: { type: Boolean, default: true },
+      // Evening digest of the day's new stories.
+      digest: { type: Boolean, default: true },
     },
     lastLoginAt: Date,
   },
@@ -62,6 +64,7 @@ userSchema.methods.toPublic = function toPublic() {
     notificationPrefs: {
       dailyReminder: this.notificationPrefs?.dailyReminder !== false,
       mock: this.notificationPrefs?.mock !== false,
+      digest: this.notificationPrefs?.digest !== false,
     },
     premium: {
       active: isPremium(this),
