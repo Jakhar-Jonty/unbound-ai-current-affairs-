@@ -97,7 +97,7 @@ test('settings: language and notification preferences', async () => {
   const u = await makeUser();
   const r = await http().patch('/api/v1/auth/me').set(u.auth).send({ lang: 'hi', notificationPrefs: { dailyReminder: false } });
   assert.equal(r.body.user.lang, 'hi');
-  assert.deepEqual(r.body.user.notificationPrefs, { dailyReminder: false, mock: true });
+  assert.deepEqual(r.body.user.notificationPrefs, { dailyReminder: false, mock: true, digest: true });
   assert.equal((await http().patch('/api/v1/auth/me').set(u.auth).send({ lang: 'fr' })).status, 400);
 });
 

@@ -36,7 +36,7 @@ test('one personalised digest per user, in their language, and never twice', asy
   const arts = await publishedArticles(5);
   await Article.updateMany({ _id: { $in: arts.slice(0, 3).map((a) => a._id) } }, { $set: { 'tags.exams': ['banking'] } });
   await Article.updateMany({ _id: { $in: arts.slice(3).map((a) => a._id) } }, { $set: { 'tags.exams': ['defence'] } });
-  await Article.updateOne({ _id: arts[0]._id }, { $set: { translations: { hi: { title: 'बैंकिंग ख़बर', summary: 'स', body: 'ब', keyPoints: ['क'], status: 'published', sourceVersion: arts[0].version } } } });
+  for (const a of arts.slice(0, 3)) await Article.updateOne({ _id: a._id }, { $set: { translations: { hi: { title: 'बैंकिंग ख़बर', summary: 'स', body: 'ब', keyPoints: ['क'], status: 'published', sourceVersion: a.version } } } });
   const banker = await deviceUser({ preferredExams: ['banking'], lang: 'hi' });
   const anyone = await deviceUser();
   const soldier = await deviceUser({ preferredExams: ['defence'] }); // only 2 stories for defence: too few
