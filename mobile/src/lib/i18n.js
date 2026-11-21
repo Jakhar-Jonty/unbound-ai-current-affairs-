@@ -329,6 +329,8 @@ const D = {
   'notif.dailySub': ['At 8 pm if you haven’t done today’s quiz, with your streak.', 'रात 8 बजे, अगर आज का क्विज़ नहीं दिया है, आपकी लय के साथ।'],
   'notif.mock': ['Weekly mock test', 'साप्ताहिक मॉक टेस्ट'],
   'notif.mockSub': ['Sunday when it opens, and Saturday if you haven’t taken it.', 'रविवार को शुरू होने पर, और शनिवार को अगर अभी तक नहीं दिया है।'],
+  'notif.digest': ['Daily news digest', 'रोज़ का ख़बरों का सार'],
+  'notif.digestSub': ['At 6:30 pm: how many new stories came in for your exams, with the top two.', 'शाम 6:30 बजे: आपकी परीक्षाओं के लिए आज कितनी नई ख़बरें आईं, मुख्य दो के साथ।'],
   'notif.morning': ['The morning “today’s quiz is live” alert is always on.', 'सुबह की “आज का क्विज़ उपलब्ध है” सूचना हमेशा चालू रहती है।'],
   'notif.permission': ['If you don’t get notifications, allow them for this app in your phone’s settings.', 'अगर सूचनाएँ नहीं आ रहीं, तो फ़ोन की सेटिंग में इस ऐप के लिए अनुमति दें।'],
 

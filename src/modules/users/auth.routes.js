@@ -85,7 +85,7 @@ router.patch('/me', requireAuth, validate(z.object({
   preferredSubjects: z.array(z.enum(require('../taxonomy/taxonomy').SUBJECT_KEYS)).max(16).optional(),
   preferredExams: z.array(z.enum(require('../taxonomy/taxonomy').EXAM_KEYS)).max(7).optional(),
   lang: z.enum(['en', 'hi']).optional(),
-  notificationPrefs: z.object({ dailyReminder: z.boolean().optional(), mock: z.boolean().optional() }).optional(),
+  notificationPrefs: z.object({ dailyReminder: z.boolean().optional(), mock: z.boolean().optional(), digest: z.boolean().optional() }).optional(),
 })), async (req, res) => {
   const { notificationPrefs, ...rest } = req.valid.body;
   const set = { ...rest };

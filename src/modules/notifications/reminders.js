@@ -5,7 +5,9 @@ const { Quiz } = require('../quiz/quiz.model');
 const { Attempt } = require('../quiz/attempt.model');
 const { PracticeAnswer } = require('../practice/practice.model');
 const { computeStreak } = require('../quiz/quiz.service');
-const { localDateString } = require('../../lib/dates');
+const { localDateString, dayStart } = require('../../lib/dates');
+const { Article } = require('../content/article.model');
+const { articleText } = require('../content/i18n');
 const { sendToUsers, broadcast } = require('./push.service');
 
 /** Push texts in each user's language. */
@@ -31,6 +33,14 @@ const TEXT = {
     hi: () => ({ title: 'इस सप्ताह के मॉक टेस्ट का आखिरी दिन', body: 'कल सुबह नया टेस्ट आएगा। देखें आप कहाँ खड़े हैं।' }),
   },
 };
+const DIGEST_TEXT = {
+  en: (n, forExams) => (forExams ? `${n} new stories for your exams today` : `${n} new stories today`),
+  hi: (n, forExams) => (forExams ? `आज आपकी परीक्षाओं के लिए ${n} नई ख़बरें` : `आज ${n} नई ख़बरें`),
+};
+const DIGEST_MORE = { en: 'and more', hi: 'और भी' };
+// Below this many new stories for a user, the day's digest isn't worth a notification.
+const DIGEST_MIN = 3;
+
 const say = (kind, user, arg) => TEXT[kind][user.lang === 'hi' ? 'hi' : 'en'](arg);
 
 /** Users with at least one device who were active in the last `days` days. */
@@ -106,4 +116,47 @@ async function sendMockReminders(opts = {}) {
   return { candidates: pending.length, ...result };
 }
 
-module.exports = { sendDailyOpen, sendDailyReminders, sendMockOpen, sendMockReminders, TEXT, broadcast };
+/**
+ * Evening digest: one notification with today's new stories, personalised to the
+ * user's exams (stories tagged for them, plus untagged ones) and in their language,
+ * e.g. "5 new stories for your exams today: RBI keeps repo rate at 6% · India and
+ * EU sign trade pact, and more". Skipped for a user with fewer than DIGEST_MIN.
+ */
+async function sendDailyDigest(opts = {}) {
+  const date = localDateString();
+  const articles = await Article.find({ status: 'published', publishedAt: { $gte: dayStart() } })
+    .select('title summary body keyPoints upscRelevance version translations tags.exams publishedAt').sort({ publishedAt: -1 }).lean();
+  if (articles.length < DIGEST_MIN) return { skipped: 'few_articles', articles: articles.length };
+  const withDevices = await DeviceToken.distinct('user');
+  const users = await User.find({ _id: { $in: withDevices }, disabled: { $ne: true }, 'notificationPrefs.digest': { $ne: false } })
+    .select('lang preferredExams').lean();
+  const lang = (u) => (u.lang === 'hi' ? 'hi' : 'en');
+  const storiesFor = (u) => {
+    const mine = u.preferredExams || [];
+    if (!mine.length) return { list: articles, forExams: false };
+    const tagged = (a) => (a.tags?.exams || []).some((e) => mine.includes(e));
+    const untagged = (a) => !(a.tags?.exams || []).length;
+    // Stories tagged for their exams first, then general (untagged) ones.
+    return { list: [...articles.filter(tagged), ...articles.filter((a) => !tagged(a) && untagged(a))], forExams: true };
+  };
+  let tooFew = 0;
+  const eligible = [];
+  const plan = new Map();
+  for (const u of users) {
+    const { list, forExams } = storiesFor(u);
+    if (list.length < DIGEST_MIN) { tooFew += 1; continue; }
+    eligible.push(u); plan.set(String(u._id), { list, forExams });
+  }
+  const result = await sendToUsers(eligible, `digest:${date}`, (u) => {
+    const { list, forExams } = plan.get(String(u._id));
+    const l = lang(u);
+    const titles = list.slice(0, 2).map((a) => articleText(a, l).title);
+    let body = titles.join(' · ');
+    if (body.length > 160) body = `${body.slice(0, 157)}…`;
+    if (list.length > 2) body += `, ${DIGEST_MORE[l]}`;
+    return { title: DIGEST_TEXT[l](list.length, forExams), body, data: { type: 'digest' } };
+  }, opts);
+  return { articles: articles.length, candidates: eligible.length, tooFew, ...result };
+}
+
+module.exports = { sendDailyOpen, sendDailyReminders, sendMockOpen, sendMockReminders, sendDailyDigest, TEXT, broadcast };

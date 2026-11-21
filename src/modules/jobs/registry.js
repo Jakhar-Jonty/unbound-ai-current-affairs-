@@ -69,6 +69,12 @@ const jobs = {
     lockTtlMs: 10 * 60 * 1000,
     handler: () => reminders.sendMockReminders(),
   },
+  'daily-digest': {
+    name: 'daily-digest',
+    schedule: config.pipeline.cron.dailyDigest,
+    lockTtlMs: 10 * 60 * 1000,
+    handler: () => reminders.sendDailyDigest(),
+  },
   'daily-reminder': {
     name: 'daily-reminder',
     schedule: config.pipeline.cron.dailyReminder,
